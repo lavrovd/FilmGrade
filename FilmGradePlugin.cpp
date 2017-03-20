@@ -10,7 +10,7 @@
 
 #define kPluginName "FilmGrade"
 #define kPluginGrouping "OpenFX Yo"
-#define kPluginDescription "Lift Gamma Gain Offset"
+#define kPluginDescription "Film style grading"
 #define kPluginIdentifier "OpenFX.Yo.FilmGrade"
 #define kPluginVersionMajor 1
 #define kPluginVersionMinor 0
