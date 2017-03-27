@@ -21,9 +21,9 @@ __global__ void FilmGradeKernel(int p_Width, int p_Height, float p_ExpR, float p
 	   float Green = p_Display != 1.0f ? p_Input[index + 1] : x / width;
 	   float Blue = p_Display != 1.0f ? p_Input[index + 2] : x / width;
 	   
-	   float expR = Red + p_ExpR/100;
-	   float expG = Green + p_ExpG/100;
-	   float expB = Blue + p_ExpB/100;
+	   float expR = Red + p_ExpR/100.0f;
+	   float expG = Green + p_ExpG/100.0f;
+	   float expB = Blue + p_ExpB/100.0f;
 	   
 	   float contR = (expR - p_ContP) * p_ContR + p_ContP;
 	   float contG = (expG - p_ContP) * p_ContG + p_ContP;
@@ -43,9 +43,9 @@ __global__ void FilmGradeKernel(int p_Width, int p_Height, float p_ExpR, float p
 	   float expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);
 	   float expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);
 	   float expr5B = expr3B > expr4 ? (expr3B - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3B /(2.0f*expr4);
-	   float expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidR*4) + expr3R;
-	   float expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidG*4) + expr3G;
-	   float expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidB*4) + expr3B;
+	   float expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidR*4.0f) + expr3R;
+	   float expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidG*4.0f) + expr3G;
+	   float expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidB*4.0f) + expr3B;
 	   float midR = satR >= expr1 && satR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : satR;
 	   float midG = satG >= expr1 && satG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : satG;
 	   float midB = satB >= expr1 && satB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : satB;
@@ -78,9 +78,9 @@ __global__ void FilmGradeKernel(int p_Width, int p_Height, float p_ExpR, float p
 	   float highdownB1 = (highupB - p_HighP) / (1.0f - p_HighP);
 	   float highdownB = highupB >= p_HighP && p_HighB < 0.0f ? log(highdownB1 * (e * p_HighB * -2.0f) + 1.0f)/log(e * p_HighB * -2.0f + 1.0f) * (1.0f + p_HighB) * (1.0f - p_HighP) + p_HighP : highupB;
 	   
-	   float outR = p_Display != 1.0f ? highdownR : y / height >= p_ShadP && y / height <= p_ShadP + 0.005f ? (fmodf(x, 2.0f) != 0.0f ? 1.0f : 0) : highdownR >= (y - 5) / height && highdownR <= (y + 5) / height ? 1.0f : 0.0f;
-	   float outG = p_Display != 1.0f ? highdownG : y / height >= p_HighP && y / height <= p_HighP + 0.005f ? (fmodf(x, 2.0f) != 0.0f ? 1.0f : 0) : highdownG >= (y - 5) / height && highdownG <= (y + 5) / height ? 1.0f : 0.0f;
-	   float outB = p_Display != 1.0f ? highdownB : y / height >= p_ContP && y / height <= p_ContP + 0.005f ? (fmodf(x, 2.0f) != 0.0f ? 1.0f : 0) : highdownB >= (y - 5) / height && highdownB <= (y + 5) / height ? 1.0f : 0.0f;
+	   float outR = p_Display != 1.0f ? highdownR : y / height >= p_ShadP && y / height <= p_ShadP + 0.005f ? (fmodf(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownR >= (y - 5) / height && highdownR <= (y + 5) / height ? 1.0f : 0.0f;
+	   float outG = p_Display != 1.0f ? highdownG : y / height >= p_HighP && y / height <= p_HighP + 0.005f ? (fmodf(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownG >= (y - 5) / height && highdownG <= (y + 5) / height ? 1.0f : 0.0f;
+	   float outB = p_Display != 1.0f ? highdownB : y / height >= p_ContP && y / height <= p_ContP + 0.005f ? (fmodf(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownB >= (y - 5) / height && highdownB <= (y + 5) / height ? 1.0f : 0.0f;
 				 			
        p_Output[index + 0] = outR;
        p_Output[index + 1] = outG;

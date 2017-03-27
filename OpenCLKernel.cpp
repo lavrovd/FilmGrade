@@ -125,36 +125,36 @@ const char *KernelSource = "\n" \
 "                                                                       \n" \
 "   if ((x < p_Width) && (y < p_Height))                                \n" \
 "   {                                                                   \n" \
-"      const int index = ((y * p_Width) + x) * BLOCKSIZE;               \n" \
+"       const int index = ((y * p_Width) + x) * BLOCKSIZE;               \n" \
 "                                                                       \n" \
-"      SRC[0] = p_Input[index + 0] ;    \n" \
-"      SRC[1] = p_Input[index + 1] ;    \n" \
-"      SRC[2] = p_Input[index + 2] ;    \n" \
-"      SRC[3] = p_Input[index + 3] ;    \n" \
-"      barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);   \n" \
-"      w_ExpR = p_ExpR;                                  \n" \
-"      w_ExpG = p_ExpG;                                   \n" \
-"      w_ExpB = p_ExpB;                        \n" \
-"      w_ContR = p_ContR;					        \n" \
-"      w_ContG = p_ContG;                                   \n" \
-"      w_ContB = p_ContB;                                   \n" \
-"      w_SatR = p_SatR;                                          \n" \
-"      w_SatG = p_SatG;                                            \n" \
-"      w_SatB = p_SatB;                                            \n" \
-"      w_ShadR = p_ShadR;                                          \n" \
-"      w_ShadG = p_ShadG;                                           \n" \
-"      w_ShadB = p_ShadB;                                           \n" \
-"      w_MidR = p_MidR;                                             \n" \
-"      w_MidG = p_MidG;                                              \n" \
-"      w_MidB = p_MidB;                                              \n" \
-"      w_HighR = p_HighR;                                             \n" \
-"      w_HighG = p_HighG;                                             \n" \
-"      w_HighB = p_HighB;                                             \n" \
-"      w_ShadP = p_ShadP;                                             \n" \
-"      w_HighP = p_HighP;                                              \n" \
-"      w_ContP = p_ContP;                                             \n" \
-"      w_Display = p_Display;                                         \n" \
-"      barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);   \n" \
+"       SRC[0] = p_Input[index + 0] ;    \n" \
+"       SRC[1] = p_Input[index + 1] ;    \n" \
+"       SRC[2] = p_Input[index + 2] ;    \n" \
+"       SRC[3] = p_Input[index + 3] ;    \n" \
+"       barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);   \n" \
+"       w_ExpR = p_ExpR;                                  \n" \
+"       w_ExpG = p_ExpG;                                   \n" \
+"       w_ExpB = p_ExpB;                        \n" \
+"       w_ContR = p_ContR;					        \n" \
+"       w_ContG = p_ContG;                                   \n" \
+"       w_ContB = p_ContB;                                   \n" \
+"       w_SatR = p_SatR;                                          \n" \
+"       w_SatG = p_SatG;                                            \n" \
+"       w_SatB = p_SatB;                                            \n" \
+"       w_ShadR = p_ShadR;                                          \n" \
+"       w_ShadG = p_ShadG;                                           \n" \
+"       w_ShadB = p_ShadB;                                           \n" \
+"       w_MidR = p_MidR;                                             \n" \
+"       w_MidG = p_MidG;                                              \n" \
+"       w_MidB = p_MidB;                                              \n" \
+"       w_HighR = p_HighR;                                             \n" \
+"       w_HighG = p_HighG;                                             \n" \
+"       w_HighB = p_HighB;                                             \n" \
+"       w_ShadP = p_ShadP;                                             \n" \
+"       w_HighP = p_HighP;                                              \n" \
+"       w_ContP = p_ContP;                                             \n" \
+"       w_Display = p_Display;                                         \n" \
+"       barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);   \n" \
 "	    e = 2.718281828459045;		\n" \
 "       pie = 3.141592653589793;		\n" \
 "            	  							\n" \
@@ -164,9 +164,9 @@ const char *KernelSource = "\n" \
 "	    Green = w_Display != 1.0f ? SRC[1] : x / width;	\n" \
 "	    Blue = w_Display != 1.0f ? SRC[2] : x / width;		\n" \
 "	   										\n" \
-"	    expR = Red + w_ExpR/100;		\n" \
-"	    expG = Green + w_ExpG/100;		\n" \
-"	    expB = Blue + w_ExpB/100;		\n" \
+"	    expR = Red + w_ExpR/100.0f;		\n" \
+"	    expG = Green + w_ExpG/100.0f;		\n" \
+"	    expB = Blue + w_ExpB/100.0f;		\n" \
 "	   										\n" \
 "	    contR = (expR - w_ContP) * w_ContR + w_ContP;		\n" \
 "	    contG = (expG - w_ContP) * w_ContG + w_ContP;		\n" \
@@ -186,9 +186,9 @@ const char *KernelSource = "\n" \
 "	    expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);	\n" \
 "	    expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);	\n" \
 "	    expr5B = expr3B > expr4 ? (expr3B - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3B /(2.0f*expr4);	\n" \
-"	    expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidR*4) + expr3R;		\n" \
-"	    expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidG*4) + expr3G;		\n" \
-"	    expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidB*4) + expr3B;		\n" \
+"	    expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidR*4.0f) + expr3R;		\n" \
+"	    expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidG*4.0f) + expr3G;		\n" \
+"	    expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidB*4.0f) + expr3B;		\n" \
 "	    midR = satR >= expr1 && satR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : satR;		\n" \
 "	    midG = satG >= expr1 && satG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : satG;		\n" \
 "	    midB = satB >= expr1 && satB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : satB;		\n" \
@@ -221,15 +221,15 @@ const char *KernelSource = "\n" \
 "	    highdownB1 = (highupB - w_HighP) / (1.0f - w_HighP);	\n" \
 "	    highdownB = highupB >= w_HighP && w_HighB < 0.0f ? log(highdownB1 * (e * w_HighB * -2.0f) + 1.0f)/log(e * w_HighB * -2.0f + 1.0f) * (1.0f + w_HighB) * (1.0f - w_HighP) + w_HighP : highupB;	\n" \
 "	   											\n" \
-"	    SRC[0] = w_Display != 1.0f ? highdownR : y / height >= w_ShadP && y / height  <= w_ShadP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0) : highdownR >= (y - 5) / height && highdownR <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
-"	    SRC[1] = w_Display != 1.0f ? highdownG : y / height >= w_HighP && y / height  <= w_HighP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0) : highdownG >= (y - 5) / height && highdownG <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
-"	    SRC[2] = w_Display != 1.0f ? highdownB : y / height >= w_ContP && y / height  <= w_ContP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0) : highdownB >= (y - 5) / height && highdownB <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
+"	    SRC[0] = w_Display != 1.0f ? highdownR : y / height >= w_ShadP && y / height  <= w_ShadP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownR >= (y - 5) / height && highdownR <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
+"	    SRC[1] = w_Display != 1.0f ? highdownG : y / height >= w_HighP && y / height  <= w_HighP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownG >= (y - 5) / height && highdownG <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
+"	    SRC[2] = w_Display != 1.0f ? highdownB : y / height >= w_ContP && y / height  <= w_ContP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownB >= (y - 5) / height && highdownB <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
 "											\n" \
-"      p_Output[index + 0] = SRC[0];				\n" \
-"      p_Output[index + 1] = SRC[1];				\n" \
-"      p_Output[index + 2] = SRC[2];				\n" \
-"      p_Output[index + 3] = SRC[3];						\n" \
-"      barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);   \n" \
+"       p_Output[index + 0] = SRC[0];				\n" \
+"       p_Output[index + 1] = SRC[1];				\n" \
+"       p_Output[index + 2] = SRC[2];				\n" \
+"       p_Output[index + 3] = SRC[3];						\n" \
+"       barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);   \n" \
 "   }                                                                   \n" \
 "}                                                                      \n" \
 "\n";
