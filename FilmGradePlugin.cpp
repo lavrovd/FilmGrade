@@ -418,34 +418,44 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float expR2 = expR + (exp - exp1 - expR1 + expG1/2.0f + expB1/2.0f);
     	float expG2 = expG + (exp - exp1 - expG1 + expR1/2.0f + expB1/2.0f);
     	float expB2 = expB + (exp - exp1 - expB1 + expR1/2.0f + expG1/2.0f);
-    	
-    	m_ExpR->setValueAtTime(p_Args.time, expR2);
-    	m_ExpG->setValueAtTime(p_Args.time, expG2);
-    	m_ExpB->setValueAtTime(p_Args.time, expB2);
-    	
+    	   	
     	float ExpSwatchR = expR2 >= expG2 && expR2 >= expB2 ? 1.0f : 1.0f - (fmax(expG2, expB2) - expR2)/40.0f;
     	float ExpSwatchG = expG2 >= expR2 && expG2 >= expB2 ? 1.0f : 1.0f - (fmax(expR2, expB2) - expG2)/40.0f;
     	float ExpSwatchB = expB2 >= expR2 && expB2 >= expG2 ? 1.0f : 1.0f - (fmax(expR2, expG2) - expB2)/40.0f;
     	
-    	m_ExpSwatch->setValueAtTime(p_Args.time, ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	beginEditBlock("expR");
+    	beginEditBlock("expG");
+    	beginEditBlock("expB");
+    	beginEditBlock("expSwatch");
     	
+    	m_ExpR->setValue(expR2);
+    	m_ExpG->setValue(expG2);
+    	m_ExpB->setValue(expB2);
+    	m_ExpSwatch->setValue(ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	
+    	endEditBlock();
     }
   	
     if (p_ParamName == "expR" && p_Args.reason == OFX::eChangeUserEdit)
     {
-    	
+
    		float expR = m_ExpR->getValueAtTime(p_Args.time);
     	float expG = m_ExpG->getValueAtTime(p_Args.time);
     	float expB = m_ExpB->getValueAtTime(p_Args.time);
     	
     	float Exp = (expR + expG + expB)/3.0f;
-    	m_Exp->setValueAtTime(p_Args.time, Exp);
     	
     	float ExpSwatchR = expR >= expG && expR >= expB ? 1.0f : 1.0f - (fmax(expG, expB) - expR)/40.0f;
     	float ExpSwatchG = expG >= expR && expG >= expB ? 1.0f : 1.0f - (fmax(expR, expB) - expG)/40.0f;
     	float ExpSwatchB = expB >= expR && expB >= expG ? 1.0f : 1.0f - (fmax(expR, expG) - expB)/40.0f;
     	
-    	m_ExpSwatch->setValueAtTime(p_Args.time, ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	beginEditBlock("exp");
+    	beginEditBlock("expSwatch");
+    	
+    	m_Exp->setValue(Exp);
+    	m_ExpSwatch->setValue(ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -457,13 +467,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float expB = m_ExpB->getValueAtTime(p_Args.time);
     	
     	float Exp = (expR + expG + expB)/3.0f;
-    	m_Exp->setValueAtTime(p_Args.time, Exp);
     	
     	float ExpSwatchR = expR >= expG && expR >= expB ? 1.0f : 1.0f - (fmax(expG, expB) - expR)/40.0f;
     	float ExpSwatchG = expG >= expR && expG >= expB ? 1.0f : 1.0f - (fmax(expR, expB) - expG)/40.0f;
     	float ExpSwatchB = expB >= expR && expB >= expG ? 1.0f : 1.0f - (fmax(expR, expG) - expB)/40.0f;
     	
-    	m_ExpSwatch->setValueAtTime(p_Args.time, ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	beginEditBlock("exp");
+    	beginEditBlock("expSwatch");
+    	
+    	m_Exp->setValue(Exp);
+    	m_ExpSwatch->setValue(ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -477,13 +492,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	
     	
     	float Exp = (expR + expG + expB)/3.0f;
-    	m_Exp->setValueAtTime(p_Args.time, Exp);
     	
     	float ExpSwatchR = expR >= expG && expR >= expB ? 1.0f : 1.0f - (fmax(expG, expB) - expR)/40.0f;
     	float ExpSwatchG = expG >= expR && expG >= expB ? 1.0f : 1.0f - (fmax(expR, expB) - expG)/40.0f;
     	float ExpSwatchB = expB >= expR && expB >= expG ? 1.0f : 1.0f - (fmax(expR, expG) - expB)/40.0f;
     	
-    	m_ExpSwatch->setValueAtTime(p_Args.time, ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	beginEditBlock("exp");
+    	beginEditBlock("expSwatch");
+    	
+    	m_Exp->setValue(Exp);
+    	m_ExpSwatch->setValue(ExpSwatchR, ExpSwatchG, ExpSwatchB);
+    	
+    	endEditBlock();
     	
     }
     	
@@ -498,9 +518,15 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float expg = exp + (expSwatch.g - (expSwatch.r + expSwatch.b)/2.0f) * (20.0f - sqrt(exp*exp));
     	float expb = exp + (expSwatch.b - (expSwatch.r + expSwatch.g)/2.0f) * (20.0f - sqrt(exp*exp));
     	
-    	m_ExpR->setValueAtTime(p_Args.time, expr);
-    	m_ExpG->setValueAtTime(p_Args.time, expg);
-    	m_ExpB->setValueAtTime(p_Args.time, expb);
+    	beginEditBlock("expR");
+    	beginEditBlock("expG");
+    	beginEditBlock("expB");
+    	
+    	m_ExpR->setValue(expr);
+    	m_ExpG->setValue(expg);
+    	m_ExpB->setValue(expb);
+    	
+    	endEditBlock();
     	
     }
     
@@ -525,15 +551,21 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float contG2 = contG + (cont - cont1 - contG1 + contR1/2.0f + contB1/2.0f);
     	float contB2 = contB + (cont - cont1 - contB1 + contR1/2.0f + contG1/2.0f);
     	
-    	m_ContR->setValueAtTime(p_Args.time, contR2);
-    	m_ContG->setValueAtTime(p_Args.time, contG2);
-    	m_ContB->setValueAtTime(p_Args.time, contB2);
-    	
     	float ContSwatchR = contR2 >= contG2 && contR2 >= contB2 ? 1.0f : 1.0f - (fmax(contG2, contB2) - contR2)/3.0f;
     	float ContSwatchG = contG2 >= contR2 && contG2 >= contB2 ? 1.0f : 1.0f - (fmax(contR2, contB2) - contG2)/3.0f;
     	float ContSwatchB = contB2 >= contR2 && contB2 >= contG2 ? 1.0f : 1.0f - (fmax(contR2, contG2) - contB2)/3.0f;
     	
-    	m_ContSwatch->setValueAtTime(p_Args.time, ContSwatchR, ContSwatchG, ContSwatchB);
+    	beginEditBlock("contR");
+    	beginEditBlock("contG");
+    	beginEditBlock("contB");
+    	beginEditBlock("contSwatch");
+    	
+    	m_ContR->setValue(contR2);
+    	m_ContG->setValue(contG2);
+    	m_ContB->setValue(contB2);
+    	m_ContSwatch->setValue(ContSwatchR, ContSwatchG, ContSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -545,13 +577,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float contB = m_ContB->getValueAtTime(p_Args.time);
     	
     	float Cont = (contR + contG + contB)/3.0f;
-    	m_Cont->setValueAtTime(p_Args.time, Cont);
     	
     	float ContSwatchR = contR >= contG && contR >= contB ? 1.0f : 1.0f - (fmax(contG, contB) - contR)/3.0f;
     	float ContSwatchG = contG >= contR && contG >= contB ? 1.0f : 1.0f - (fmax(contR, contB) - contG)/3.0f;
     	float ContSwatchB = contB >= contR && contB >= contG ? 1.0f : 1.0f - (fmax(contR, contG) - contB)/3.0f;
     	
-    	m_ContSwatch->setValueAtTime(p_Args.time, ContSwatchR, ContSwatchG, ContSwatchB);
+    	beginEditBlock("cont");
+    	beginEditBlock("contSwatch");
+    	
+    	m_Cont->setValue(Cont);
+    	m_ContSwatch->setValue(ContSwatchR, ContSwatchG, ContSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -563,13 +600,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float contB = m_ContB->getValueAtTime(p_Args.time);
     	
     	float Cont = (contR + contG + contB)/3.0f;
-    	m_Cont->setValueAtTime(p_Args.time, Cont);
     	
     	float ContSwatchR = contR >= contG && contR >= contB ? 1.0f : 1.0f - (fmax(contG, contB) - contR)/3.0f;
     	float ContSwatchG = contG >= contR && contG >= contB ? 1.0f : 1.0f - (fmax(contR, contB) - contG)/3.0f;
     	float ContSwatchB = contB >= contR && contB >= contG ? 1.0f : 1.0f - (fmax(contR, contG) - contB)/3.0f;
     	
-    	m_ContSwatch->setValueAtTime(p_Args.time, ContSwatchR, ContSwatchG, ContSwatchB);
+    	beginEditBlock("cont");
+    	beginEditBlock("contSwatch");
+    	
+    	m_Cont->setValue(Cont);
+    	m_ContSwatch->setValue(ContSwatchR, ContSwatchG, ContSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -581,13 +623,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float contB = m_ContB->getValueAtTime(p_Args.time);
     	
     	float Cont = (contR + contG + contB)/3.0f;
-    	m_Cont->setValueAtTime(p_Args.time, Cont);
     	
     	float ContSwatchR = contR >= contG && contR >= contB ? 1.0f : 1.0f - (fmax(contG, contB) - contR)/3.0f;
     	float ContSwatchG = contG >= contR && contG >= contB ? 1.0f : 1.0f - (fmax(contR, contB) - contG)/3.0f;
     	float ContSwatchB = contB >= contR && contB >= contG ? 1.0f : 1.0f - (fmax(contR, contG) - contB)/3.0f;
     	
-    	m_ContSwatch->setValueAtTime(p_Args.time, ContSwatchR, ContSwatchG, ContSwatchB);
+    	beginEditBlock("cont");
+    	beginEditBlock("contSwatch");
+    	
+    	m_Cont->setValue(Cont);
+    	m_ContSwatch->setValue(ContSwatchR, ContSwatchG, ContSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -602,9 +649,15 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float contg = cont + (contSwatch.g - (contSwatch.r + contSwatch.b)/2.0f) * cont1;
     	float contb = cont + (contSwatch.b - (contSwatch.r + contSwatch.g)/2.0f) * cont1;
     	
-    	m_ContR->setValueAtTime(p_Args.time, contr);
-    	m_ContG->setValueAtTime(p_Args.time, contg);
-    	m_ContB->setValueAtTime(p_Args.time, contb);
+    	beginEditBlock("contR");
+    	beginEditBlock("contG");
+    	beginEditBlock("contB");
+    	
+    	m_ContR->setValue(contr);
+    	m_ContG->setValue(contg);
+    	m_ContB->setValue(contb);
+    	
+    	endEditBlock();
     	
     }
     
@@ -630,15 +683,21 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float satG2 = satG + (sat - sat1 - satG1 + satR1/2.0f + satB1/2.0f);
     	float satB2 = satB + (sat - sat1 - satB1 + satR1/2.0f + satG1/2.0f);
     	
-    	m_SatR->setValueAtTime(p_Args.time, satR2);
-    	m_SatG->setValueAtTime(p_Args.time, satG2);
-    	m_SatB->setValueAtTime(p_Args.time, satB2);
-    	
     	float SatSwatchR = satR2 >= satG2 && satR2 >= satB2 ? 1.0f : 1.0f - (fmax(satG2, satB2) - satR2)/3.0f;
     	float SatSwatchG = satG2 >= satR2 && satG2 >= satB2 ? 1.0f : 1.0f - (fmax(satR2, satB2) - satG2)/3.0f;
     	float SatSwatchB = satB2 >= satR2 && satB2 >= satG2 ? 1.0f : 1.0f - (fmax(satR2, satG2) - satB2)/3.0f;
     
-    	m_SatSwatch->setValueAtTime(p_Args.time, SatSwatchR, SatSwatchG, SatSwatchB);
+    	beginEditBlock("satR");
+    	beginEditBlock("satG");
+    	beginEditBlock("satB");
+    	beginEditBlock("satSwatch");
+    	
+    	m_SatR->setValue(satR2);
+    	m_SatG->setValue(satG2);
+    	m_SatB->setValue(satB2);
+    	m_SatSwatch->setValue(SatSwatchR, SatSwatchG, SatSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -650,13 +709,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float satB = m_SatB->getValueAtTime(p_Args.time);
     	
     	float Sat = (satR + satG + satB)/3.0f;
-    	m_Sat->setValueAtTime(p_Args.time, Sat);
     	
     	float SatSwatchR = satR >= satG && satR >= satB ? 1.0f : 1.0f - (fmax(satG, satB) - satR)/3.0f;
     	float SatSwatchG = satG >= satR && satG >= satB ? 1.0f : 1.0f - (fmax(satR, satB) - satG)/3.0f;
     	float SatSwatchB = satB >= satR && satB >= satG ? 1.0f : 1.0f - (fmax(satR, satG) - satB)/3.0f;
     	
-    	m_SatSwatch->setValueAtTime(p_Args.time, SatSwatchR, SatSwatchG, SatSwatchB);
+    	beginEditBlock("sat");
+    	beginEditBlock("satSwatch");
+    	
+    	m_Sat->setValue(Sat);
+    	m_SatSwatch->setValue(SatSwatchR, SatSwatchG, SatSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -668,13 +732,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float satB = m_SatB->getValueAtTime(p_Args.time);
     	
     	float Sat = (satR + satG + satB)/3.0f;
-    	m_Sat->setValueAtTime(p_Args.time, Sat);
     	
     	float SatSwatchR = satR >= satG && satR >= satB ? 1.0f : 1.0f - (fmax(satG, satB) - satR)/3.0f;
     	float SatSwatchG = satG >= satR && satG >= satB ? 1.0f : 1.0f - (fmax(satR, satB) - satG)/3.0f;
     	float SatSwatchB = satB >= satR && satB >= satG ? 1.0f : 1.0f - (fmax(satR, satG) - satB)/3.0f;
     	
-    	m_SatSwatch->setValueAtTime(p_Args.time, SatSwatchR, SatSwatchG, SatSwatchB);
+    	beginEditBlock("sat");
+    	beginEditBlock("satSwatch");
+    	
+    	m_Sat->setValue(Sat);
+    	m_SatSwatch->setValue(SatSwatchR, SatSwatchG, SatSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -685,14 +754,19 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float satG = m_SatG->getValueAtTime(p_Args.time);
     	float satB = m_SatB->getValueAtTime(p_Args.time);
     	
-    	float Sat = (satR + satG + satB)/3;
-    	m_Sat->setValueAtTime(p_Args.time, Sat);
+    	float Sat = (satR + satG + satB)/3.0f;
     	
     	float SatSwatchR = satR >= satG && satR >= satB ? 1.0f : 1.0f - (fmax(satG, satB) - satR)/3.0f;
     	float SatSwatchG = satG >= satR && satG >= satB ? 1.0f : 1.0f - (fmax(satR, satB) - satG)/3.0f;
     	float SatSwatchB = satB >= satR && satB >= satG ? 1.0f : 1.0f - (fmax(satR, satG) - satB)/3.0f;
     	
-    	m_SatSwatch->setValueAtTime(p_Args.time, SatSwatchR, SatSwatchG, SatSwatchB);
+    	beginEditBlock("sat");
+    	beginEditBlock("satSwatch");
+    	
+    	m_Sat->setValue(Sat);
+    	m_SatSwatch->setValue(SatSwatchR, SatSwatchG, SatSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -707,9 +781,15 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float satg = sat + (satSwatch.g - (satSwatch.r + satSwatch.b)/2.0f) * sat1;
     	float satb = sat + (satSwatch.b - (satSwatch.r + satSwatch.g)/2.0f) * sat1;
     	
-    	m_SatR->setValueAtTime(p_Args.time, satr);
-    	m_SatG->setValueAtTime(p_Args.time, satg);
-    	m_SatB->setValueAtTime(p_Args.time, satb);
+    	beginEditBlock("satR");
+    	beginEditBlock("satG");
+    	beginEditBlock("satB");
+    	
+    	m_SatR->setValue(satr);
+    	m_SatG->setValue(satg);
+    	m_SatB->setValue(satb);
+    	
+    	endEditBlock();
     	
     }
     
@@ -735,15 +815,21 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float midG2 = midG + (mid - mid1 - midG1 + midR1/2.0f + midB1/2.0f);
     	float midB2 = midB + (mid - mid1 - midB1 + midR1/2.0f + midG1/2.0f);
     	
-    	m_MidR->setValueAtTime(p_Args.time, midR2);
-    	m_MidG->setValueAtTime(p_Args.time, midG2);
-    	m_MidB->setValueAtTime(p_Args.time, midB2);
-    	
     	float MidSwatchR = midR2 >= midG2 && midR2 >= midB2 ? 1.0f : 1.0f - (fmax(midG2, midB2) - midR2);
     	float MidSwatchG = midG2 >= midR2 && midG2 >= midB2 ? 1.0f : 1.0f - (fmax(midR2, midB2) - midG2);
     	float MidSwatchB = midB2 >= midR2 && midB2 >= midG2 ? 1.0f : 1.0f - (fmax(midR2, midG2) - midB2);
     	
-    	m_MidSwatch->setValueAtTime(p_Args.time, MidSwatchR, MidSwatchG, MidSwatchB);
+    	beginEditBlock("midR");
+    	beginEditBlock("midG");
+    	beginEditBlock("midB");
+    	beginEditBlock("midSwatch");
+    	
+    	m_MidR->setValue(midR2);
+    	m_MidG->setValue(midG2);
+    	m_MidB->setValue(midB2);
+    	m_MidSwatch->setValue(MidSwatchR, MidSwatchG, MidSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -755,13 +841,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float midB = m_MidB->getValueAtTime(p_Args.time);
     	
     	float Mid = (midR + midG + midB)/3.0f;
-    	m_Mid->setValueAtTime(p_Args.time, Mid);
     	
     	float MidSwatchR = midR >= midG && midR >= midB ? 1.0f : 1.0f - (fmax(midG, midB) - midR);
     	float MidSwatchG = midG >= midR && midG >= midB ? 1.0f : 1.0f - (fmax(midR, midB) - midG);
     	float MidSwatchB = midB >= midR && midB >= midG ? 1.0f : 1.0f - (fmax(midR, midG) - midB);
     	
-    	m_MidSwatch->setValueAtTime(p_Args.time, MidSwatchR, MidSwatchG, MidSwatchB);
+    	beginEditBlock("mid");
+    	beginEditBlock("midSwatch");
+    	
+    	m_Mid->setValue(Mid);
+    	m_MidSwatch->setValue(MidSwatchR, MidSwatchG, MidSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -773,13 +864,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float midB = m_MidB->getValueAtTime(p_Args.time);
     	
     	float Mid = (midR + midG + midB)/3.0f;
-    	m_Mid->setValueAtTime(p_Args.time, Mid);
     	
     	float MidSwatchR = midR >= midG && midR >= midB ? 1.0f : 1.0f - (fmax(midG, midB) - midR);
     	float MidSwatchG = midG >= midR && midG >= midB ? 1.0f : 1.0f - (fmax(midR, midB) - midG);
     	float MidSwatchB = midB >= midR && midB >= midG ? 1.0f : 1.0f - (fmax(midR, midG) - midB);
     	
-    	m_MidSwatch->setValueAtTime(p_Args.time, MidSwatchR, MidSwatchG, MidSwatchB);
+    	beginEditBlock("mid");
+    	beginEditBlock("midSwatch");
+    	
+    	m_Mid->setValue(Mid);
+    	m_MidSwatch->setValue(MidSwatchR, MidSwatchG, MidSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -791,13 +887,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float midB = m_MidB->getValueAtTime(p_Args.time);
     	
     	float Mid = (midR + midG + midB)/3.0f;
-    	m_Mid->setValueAtTime(p_Args.time, Mid);
     	
     	float MidSwatchR = midR >= midG && midR >= midB ? 1.0f : 1.0f - (fmax(midG, midB) - midR);
     	float MidSwatchG = midG >= midR && midG >= midB ? 1.0f : 1.0f - (fmax(midR, midB) - midG);
     	float MidSwatchB = midB >= midR && midB >= midG ? 1.0f : 1.0f - (fmax(midR, midG) - midB);
     	
-    	m_MidSwatch->setValueAtTime(p_Args.time, MidSwatchR, MidSwatchG, MidSwatchB);
+    	beginEditBlock("mid");
+    	beginEditBlock("midSwatch");
+    	
+    	m_Mid->setValue(Mid);
+    	m_MidSwatch->setValue(MidSwatchR, MidSwatchG, MidSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -811,9 +912,15 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float midg = mid + (midSwatch.g - (midSwatch.r + midSwatch.b)/2.0f) * (0.5f - sqrt(mid*mid));
     	float midb = mid + (midSwatch.b - (midSwatch.r + midSwatch.g)/2.0f) * (0.5f - sqrt(mid*mid));
     	
-    	m_MidR->setValueAtTime(p_Args.time, midr);
-    	m_MidG->setValueAtTime(p_Args.time, midg);
-    	m_MidB->setValueAtTime(p_Args.time, midb);
+    	beginEditBlock("midR");
+    	beginEditBlock("midG");
+    	beginEditBlock("midB");
+    	
+    	m_MidR->setValue(midr);
+    	m_MidG->setValue(midg);
+    	m_MidB->setValue(midb);
+    	
+    	endEditBlock();
     	
     }
    
@@ -839,15 +946,21 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float shadG2 = shadG + (shad - shad1 - shadG1 + shadR1/2.0f + shadB1/2.0f);
     	float shadB2 = shadB + (shad - shad1 - shadB1 + shadR1/2.0f + shadG1/2.0f);
     	
-    	m_ShadR->setValueAtTime(p_Args.time, shadR2);
-    	m_ShadG->setValueAtTime(p_Args.time, shadG2);
-    	m_ShadB->setValueAtTime(p_Args.time, shadB2);
-    	
     	float ShadSwatchR = shadR2 >= shadG2 && shadR2 >= shadB2 ? 1.0f : 1.0f - (fmax(shadG2, shadB2) - shadR2);
     	float ShadSwatchG = shadG2 >= shadR2 && shadG2 >= shadB2 ? 1.0f : 1.0f - (fmax(shadR2, shadB2) - shadG2);
     	float ShadSwatchB = shadB2 >= shadR2 && shadB2 >= shadG2 ? 1.0f : 1.0f - (fmax(shadR2, shadG2) - shadB2);
     	
-    	m_ShadSwatch->setValueAtTime(p_Args.time, ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	beginEditBlock("shadR");
+    	beginEditBlock("shadG");
+    	beginEditBlock("shadB");
+    	beginEditBlock("shadSwatch");
+    	
+    	m_ShadR->setValue(shadR2);
+    	m_ShadG->setValue(shadG2);
+    	m_ShadB->setValue(shadB2);
+    	m_ShadSwatch->setValue(ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -859,13 +972,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float shadB = m_ShadB->getValueAtTime(p_Args.time);
     	
     	float Shad = (shadR + shadG + shadB)/3.0f;
-    	m_Shad->setValueAtTime(p_Args.time, Shad);
     	
     	float ShadSwatchR = shadR >= shadG && shadR >= shadB ? 1.0f : 1.0f - (fmax(shadG, shadB) - shadR);
     	float ShadSwatchG = shadG >= shadR && shadG >= shadB ? 1.0f : 1.0f - (fmax(shadR, shadB) - shadG);
     	float ShadSwatchB = shadB >= shadR && shadB >= shadG ? 1.0f : 1.0f - (fmax(shadR, shadG) - shadB);
     	
-    	m_ShadSwatch->setValueAtTime(p_Args.time, ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	beginEditBlock("shad");
+    	beginEditBlock("shadSwatch");
+    	
+    	m_Shad->setValue(Shad);
+    	m_ShadSwatch->setValue(ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -877,13 +995,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float shadB = m_ShadB->getValueAtTime(p_Args.time);
     	
     	float Shad = (shadR + shadG + shadB)/3.0f;
-    	m_Shad->setValueAtTime(p_Args.time, Shad);
     	
     	float ShadSwatchR = shadR >= shadG && shadR >= shadB ? 1.0f : 1.0f - (fmax(shadG, shadB) - shadR);
     	float ShadSwatchG = shadG >= shadR && shadG >= shadB ? 1.0f : 1.0f - (fmax(shadR, shadB) - shadG);
     	float ShadSwatchB = shadB >= shadR && shadB >= shadG ? 1.0f : 1.0f - (fmax(shadR, shadG) - shadB);
     	
-    	m_ShadSwatch->setValueAtTime(p_Args.time, ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	beginEditBlock("shad");
+    	beginEditBlock("shadSwatch");
+    	
+    	m_Shad->setValue(Shad);
+    	m_ShadSwatch->setValue(ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -895,13 +1018,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float shadB = m_ShadB->getValueAtTime(p_Args.time);
     	
     	float Shad = (shadR + shadG + shadB)/3.0f;
-    	m_Shad->setValueAtTime(p_Args.time, Shad);
     	
     	float ShadSwatchR = shadR >= shadG && shadR >= shadB ? 1.0f : 1.0f - (fmax(shadG, shadB) - shadR);
     	float ShadSwatchG = shadG >= shadR && shadG >= shadB ? 1.0f : 1.0f - (fmax(shadR, shadB) - shadG);
     	float ShadSwatchB = shadB >= shadR && shadB >= shadG ? 1.0f : 1.0f - (fmax(shadR, shadG) - shadB);
     	
-    	m_ShadSwatch->setValueAtTime(p_Args.time, ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	beginEditBlock("shad");
+    	beginEditBlock("shadSwatch");
+    	
+    	m_Shad->setValue(Shad);
+    	m_ShadSwatch->setValue(ShadSwatchR, ShadSwatchG, ShadSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -915,9 +1043,15 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float shadg = shad + (shadSwatch.g - (shadSwatch.r + shadSwatch.b)/2.0f) * (0.5f - sqrt(shad*shad));
     	float shadb = shad + (shadSwatch.b - (shadSwatch.r + shadSwatch.g)/2.0f) * (0.5f - sqrt(shad*shad));
     	
-    	m_ShadR->setValueAtTime(p_Args.time, shadr);
-    	m_ShadG->setValueAtTime(p_Args.time, shadg);
-    	m_ShadB->setValueAtTime(p_Args.time, shadb);
+    	beginEditBlock("shadR");
+    	beginEditBlock("shadG");
+    	beginEditBlock("shadB");
+    	
+    	m_ShadR->setValue(shadr);
+    	m_ShadG->setValue(shadg);
+    	m_ShadB->setValue(shadb);
+    	
+    	endEditBlock();
     	
     }
    
@@ -943,15 +1077,21 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float highG2 = highG + (high - high1 - highG1 + highR1/2.0f + highB1/2.0f);
     	float highB2 = highB + (high - high1 - highB1 + highR1/2.0f + highG1/2.0f);
     	
-    	m_HighR->setValueAtTime(p_Args.time, highR2);
-    	m_HighG->setValueAtTime(p_Args.time, highG2);
-    	m_HighB->setValueAtTime(p_Args.time, highB2);
-    	
     	float HighSwatchR = highR2 >= highG2 && highR2 >= highB2 ? 1.0f : 1.0f - (fmax(highG2, highB2) - highR2);
     	float HighSwatchG = highG2 >= highR2 && highG2 >= highB2 ? 1.0f : 1.0f - (fmax(highR2, highB2) - highG2);
     	float HighSwatchB = highB2 >= highR2 && highB2 >= highG2 ? 1.0f : 1.0f - (fmax(highR2, highG2) - highB2);
     	
-    	m_HighSwatch->setValueAtTime(p_Args.time, HighSwatchR, HighSwatchG, HighSwatchB);
+    	beginEditBlock("highR");
+    	beginEditBlock("highG");
+    	beginEditBlock("highB");
+    	beginEditBlock("highSwatch");
+    	
+    	m_HighR->setValue(highR2);
+    	m_HighG->setValue(highG2);
+    	m_HighB->setValue(highB2);
+    	m_HighSwatch->setValue(HighSwatchR, HighSwatchG, HighSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -963,13 +1103,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float highB = m_HighB->getValueAtTime(p_Args.time);
     	
     	float High = (highR + highG + highB)/3.0f;
-    	m_High->setValueAtTime(p_Args.time, High);
     	
     	float HighSwatchR = highR >= highG && highR >= highB ? 1.0f : 1.0f - (fmax(highG, highB) - highR);
     	float HighSwatchG = highG >= highR && highG >= highB ? 1.0f : 1.0f - (fmax(highR, highB) - highG);
     	float HighSwatchB = highB >= highR && highB >= highG ? 1.0f : 1.0f - (fmax(highR, highG) - highB);
     	
-    	m_HighSwatch->setValueAtTime(p_Args.time, HighSwatchR, HighSwatchG, HighSwatchB);
+    	beginEditBlock("high");
+    	beginEditBlock("highSwatch");
+    	
+    	m_High->setValue(High);
+    	m_HighSwatch->setValue(HighSwatchR, HighSwatchG, HighSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -981,13 +1126,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float highB = m_HighB->getValueAtTime(p_Args.time);
     	
     	float High = (highR + highG + highB)/3.0f;
-    	m_High->setValueAtTime(p_Args.time, High);
     	
     	float HighSwatchR = highR >= highG && highR >= highB ? 1.0f : 1.0f - (fmax(highG, highB) - highR);
     	float HighSwatchG = highG >= highR && highG >= highB ? 1.0f : 1.0f - (fmax(highR, highB) - highG);
     	float HighSwatchB = highB >= highR && highB >= highG ? 1.0f : 1.0f - (fmax(highR, highG) - highB);
     	
-    	m_HighSwatch->setValueAtTime(p_Args.time, HighSwatchR, HighSwatchG, HighSwatchB);
+    	beginEditBlock("high");
+    	beginEditBlock("highSwatch");
+    	
+    	m_High->setValue(High);
+    	m_HighSwatch->setValue(HighSwatchR, HighSwatchG, HighSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -999,13 +1149,18 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float highB = m_HighB->getValueAtTime(p_Args.time);
     	
     	float High = (highR + highG + highB)/3.0f;
-    	m_High->setValueAtTime(p_Args.time, High);
     	
     	float HighSwatchR = highR >= highG && highR >= highB ? 1.0f : 1.0f - (fmax(highG, highB) - highR);
     	float HighSwatchG = highG >= highR && highG >= highB ? 1.0f : 1.0f - (fmax(highR, highB) - highG);
     	float HighSwatchB = highB >= highR && highB >= highG ? 1.0f : 1.0f - (fmax(highR, highG) - highB);
     	
-    	m_HighSwatch->setValueAtTime(p_Args.time, HighSwatchR, HighSwatchG, HighSwatchB);
+    	beginEditBlock("high");
+    	beginEditBlock("highSwatch");
+    	
+    	m_High->setValue(High);
+    	m_HighSwatch->setValue(HighSwatchR, HighSwatchG, HighSwatchB);
+    	
+    	endEditBlock();
     	
     }
     
@@ -1019,9 +1174,15 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	float highg = high + (highSwatch.g - (highSwatch.r + highSwatch.b)/2.0f) * (0.5f - sqrt(high*high));
     	float highb = high + (highSwatch.b - (highSwatch.r + highSwatch.g)/2.0f) * (0.5f - sqrt(high*high));
     	
-    	m_HighR->setValueAtTime(p_Args.time, highr);
-    	m_HighG->setValueAtTime(p_Args.time, highg);
-    	m_HighB->setValueAtTime(p_Args.time, highb);
+    	beginEditBlock("highR");
+    	beginEditBlock("highG");
+    	beginEditBlock("highB");
+    	
+    	m_HighR->setValue(highr);
+    	m_HighG->setValue(highg);
+    	m_HighB->setValue(highb);
+    	
+    	endEditBlock();
     	
     }
    
