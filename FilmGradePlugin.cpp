@@ -13,7 +13,7 @@
 #define kPluginDescription "Film style grading"
 #define kPluginIdentifier "OpenFX.Yo.FilmGrade"
 #define kPluginVersionMajor 1
-#define kPluginVersionMinor 1
+#define kPluginVersionMinor 2
 
 #define kSupportsTiles false
 #define kSupportsMultiResolution false
@@ -117,10 +117,62 @@ void ImageScaler::multiThreadProcessImages(OfxRectI p_ProcWindow)
             	  float Red = _display[0] != 1.0f ? srcPix[0] : (x / width);
             	  float Green = _display[0] != 1.0f ? srcPix[1] : (x / width);
             	  float Blue = _display[0] != 1.0f ? srcPix[2] : (x / width);
-            	  
-                  float expR = Red + _exp[0]/100.0f;
-                  float expG = Green + _exp[1]/100.0f;
-                  float expB = Blue + _exp[2]/100.0f;
+                  
+                  float expr1 = (_pivot[0] / 2.0f) - (1.0f - _pivot[1])/4.0f;
+				  float expr2 = (1.0f - (1.0f - _pivot[1])/2.0f) + (_pivot[0] / 4.0f);
+				  float expr3R = (Red - expr1) / (expr2 - expr1);
+				  float expr3G = (Green - expr1) / (expr2 - expr1);
+				  float expr3B = (Blue - expr1) / (expr2 - expr1);
+				  float expr4 =  _pivot[2] < 0.5f ? 0.5f - (0.5f - _pivot[2])/2.0f : 0.5f + (_pivot[2] - 0.5f)/2.0f;
+				  float expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);
+				  float expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);
+				  float expr5B = expr3B > expr4 ? (expr3B - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3B /(2.0f*expr4);
+				  float expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[0]*4.0f) + expr3R;
+				  float expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[1]*4.0f) + expr3G;
+				  float expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[2]*4.0f) + expr3B;
+				  float midR = Red >= expr1 && Red <= expr2 ? expr6R * (expr2 - expr1) + expr1 : Red;
+				  float midG = Green >= expr1 && Green <= expr2 ? expr6G * (expr2 - expr1) + expr1 : Green;
+				  float midB = Blue >= expr1 && Blue <= expr2 ? expr6B * (expr2 - expr1) + expr1 : Blue;
+
+                  float shadupR1 = 2.0f * (midR/_pivot[0]) - log((midR/_pivot[0]) * (e * _shad[0] * 2.0f) + 1.0f)/log(e * _shad[0] * 2.0f + 1.0f);
+                  float shadupR = midR < _pivot[0] && _shad[0] > 0.0f ? (shadupR1 + _shad[0] * (1.0f - shadupR1)) * _pivot[0] : midR;
+                  float shadupG1 = 2.0f * (midG/_pivot[0]) - log((midG/_pivot[0]) * (e * _shad[1] * 2.0f) + 1.0f)/log(e * _shad[1] * 2.0f + 1.0f);
+                  float shadupG = midG < _pivot[0] && _shad[1] > 0.0f ? (shadupG1 + _shad[1] * (1.0f - shadupG1)) * _pivot[0] : midG;
+                  float shadupB1 = 2.0f * (midB/_pivot[0]) - log((midB/_pivot[0]) * (e * _shad[2] * 2.0f) + 1.0f)/log(e * _shad[2] * 2.0f + 1.0f);
+                  float shadupB = midB < _pivot[0] && _shad[2] > 0.0f ? (shadupB1 + _shad[2] * (1.0f - shadupB1)) * _pivot[0] : midB;
+                  
+                  /*
+                  float shaddownR1 = log((shadupR/_pivot[0]) * (e * _shad[0] * -10.0f) + 1.0f)/log(e * _shad[0] * -10.0f + 1.0f);
+                  float shaddownR = shadupR < _pivot[0] && _shad[0] < 0.0f ? (shaddownR1 + _shad[0] * 10.0f * (1.0f - shaddownR1)) * _pivot[0] : shadupR;
+                  float shaddownG1 = log((shadupG/_pivot[0]) * (e * _shad[0] * -10.0f) + 1.0f)/log(e * _shad[0] * -10.0f + 1.0f);
+                  float shaddownG = shadupG < _pivot[0] && _shad[0] < 0.0f ? (shaddownG1 + _shad[0] * 10.0f * (1.0f - shaddownG1)) * _pivot[0] : shadupG;
+                  float shaddownB1 = log((shadupB/_pivot[0]) * (e * _shad[0] * -10.0f) + 1.0f)/log(e * _shad[0] * -10.0f + 1.0f);
+                  float shaddownB = shadupB < _pivot[0] && _shad[0] < 0.0f ? (shaddownB1 + _shad[0] * 10.0f * (1.0f - shaddownB1)) * _pivot[0] : shadupB;
+                  */
+                  float shaddownR1 = (shadupR/_pivot[0]) + (_shad[0] * 2.0f * (1.0f - shadupR/_pivot[0]));
+                  float shaddownR = shadupR < _pivot[0] && _shad[0] < 0.0f ? (shaddownR1 >= 0.0f ? log(shaddownR1 * (e * _shad[0] * -2.0f) + 1.0f)/log(e * _shad[0] * -2.0f + 1.0f) : shaddownR1) * _pivot[0] : shadupR;
+                  float shaddownG1 = (shadupG/_pivot[0]) + (_shad[1] * 2.0f * (1.0f - shadupG/_pivot[0]));
+                  float shaddownG = shadupG < _pivot[0] && _shad[1] < 0.0f ? (shaddownG1 >= 0.0f ? log(shaddownG1 * (e * _shad[1] * -2.0f) + 1.0f)/log(e * _shad[1] * -2.0f + 1.0f) : shaddownG1) * _pivot[0] : shadupG;
+                  float shaddownB1 = (shadupB/_pivot[0]) + (_shad[2] * 2.0f * (1.0f - shadupB/_pivot[0]));
+                  float shaddownB = shadupB < _pivot[0] && _shad[2] < 0.0f ? (shaddownB1 >= 0.0f ? log(shaddownB1 * (e * _shad[2] * -2.0f) + 1.0f)/log(e * _shad[2] * -2.0f + 1.0f) : shaddownB1) * _pivot[0] : shadupB;
+                  
+                  float highupR1 = ((shaddownR - _pivot[1]) / (1.0f - _pivot[1])) * (1.0f + (_high[0] * 2.0f));
+                  float highupR = shaddownR > _pivot[1] && _pivot[1] < 1.0f && _high[0] > 0.0f ? (2.0f * highupR1 - log(highupR1 * e * _high[0] + 1.0f)/log(e * _high[0] + 1.0f)) * (1.0f - _pivot[1]) + _pivot[1] : shaddownR;
+                  float highupG1 = ((shaddownG - _pivot[1]) / (1.0f - _pivot[1])) * (1.0f + (_high[1] * 2.0f));
+                  float highupG = shaddownG > _pivot[1] && _pivot[1] < 1.0f && _high[1] > 0.0f ? (2.0f * highupG1 - log(highupG1 * e * _high[1] + 1.0f)/log(e * _high[1] + 1.0f)) * (1.0f - _pivot[1]) + _pivot[1] : shaddownG;
+                  float highupB1 = ((shaddownB - _pivot[1]) / (1.0f - _pivot[1])) * (1.0f + (_high[2] * 2.0f));
+                  float highupB = shaddownB > _pivot[1] && _pivot[1] < 1.0f && _high[2] > 0.0f ? (2.0f * highupB1 - log(highupB1 * e * _high[2] + 1.0f)/log(e * _high[2] + 1.0f)) * (1.0f - _pivot[1]) + _pivot[1] : shaddownB;
+                  
+                  float highdownR1 = (highupR - _pivot[1]) / (1.0f - _pivot[1]);
+                  float highdownR = highupR > _pivot[1] && _pivot[1] < 1.0f && _high[0] < 0.0f ? log(highdownR1 * (e * _high[0] * -2.0f) + 1.0f)/log(e * _high[0] * -2.0f + 1.0f) * (1.0f + _high[0]) * (1.0f - _pivot[1]) + _pivot[1]  : highupR;
+                  float highdownG1 = (highupG - _pivot[1]) / (1.0f - _pivot[1]);
+                  float highdownG = highupG > _pivot[1] && _pivot[1] < 1.0f && _high[1] < 0.0f ? log(highdownG1 * (e * _high[1] * -2.0f) + 1.0f)/log(e * _high[1] * -2.0f + 1.0f) * (1.0f + _high[1]) * (1.0f - _pivot[1]) + _pivot[1]  : highupG;
+                  float highdownB1 = (highupB - _pivot[1]) / (1.0f - _pivot[1]);
+                  float highdownB = highupB > _pivot[1] && _pivot[1] < 1.0f && _high[2] < 0.0f ? log(highdownB1 * (e * _high[2] * -2.0f) + 1.0f)/log(e * _high[2] * -2.0f + 1.0f) * (1.0f + _high[2]) * (1.0f - _pivot[1]) + _pivot[1]  : highupB;
+                  
+                  float expR = highdownR + _exp[0]/100.0f;
+                  float expG = highdownG + _exp[1]/100.0f;
+                  float expB = highdownB + _exp[2]/100.0f;
                   
                   float contR = (expR - _pivot[2]) * _cont[0] + _pivot[2];
                   float contG = (expG - _pivot[2]) * _cont[1] + _pivot[2];
@@ -131,53 +183,9 @@ void ImageScaler::multiThreadProcessImages(OfxRectI p_ProcWindow)
                   float satG = (1.0f - (_sat[0]*0.2126f + _sat[1]* 0.7152f + _sat[2]*0.0722f)) * luma + contG * _sat[1];
                   float satB = (1.0f - (_sat[0]*0.2126f + _sat[1]* 0.7152f + _sat[2]*0.0722f)) * luma + contB * _sat[2];
                   
-                  float expr1 = (_pivot[0] / 2.0f) - (1.0f - _pivot[1])/4.0f;
-				  float expr2 = (1.0f - (1.0f - _pivot[1])/2.0f) + (_pivot[0] / 4.0f);
-				  float expr3R = (satR - expr1) / (expr2 - expr1);
-				  float expr3G = (satG - expr1) / (expr2 - expr1);
-				  float expr3B = (satB - expr1) / (expr2 - expr1);
-				  float expr4 =  _pivot[2] < 0.5f ? 0.5f - (0.5f - _pivot[2])/2.0f : 0.5f + (_pivot[2] - 0.5f)/2.0f;
-				  float expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);
-				  float expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);
-				  float expr5B = expr3B > expr4 ? (expr3B - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3B /(2.0f*expr4);
-				  float expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[0]*4.0f) + expr3R;
-				  float expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[1]*4.0f) + expr3G;
-				  float expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[2]*4.0f) + expr3B;
-				  float midR = satR >= expr1 && satR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : satR;
-				  float midG = satG >= expr1 && satG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : satG;
-				  float midB = satB >= expr1 && satB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : satB;
-
-                  float shadupR1 = 2.0f * (midR/_pivot[0]) - log((midR/_pivot[0]) * (e * _shad[0] * 2.0f) + 1.0f)/log(e * _shad[0] * 2.0f + 1.0f);
-                  float shadupR = midR <= _pivot[0] && _shad[0] > 0.0f ? (shadupR1 + _shad[0] * (1.0f - shadupR1)) * _pivot[0] : midR;
-                  float shadupG1 = 2.0f * (midG/_pivot[0]) - log((midG/_pivot[0]) * (e * _shad[1] * 2.0f) + 1.0f)/log(e * _shad[1] * 2.0f + 1.0f);
-                  float shadupG = midG <= _pivot[0] && _shad[1] > 0.0f ? (shadupG1 + _shad[1] * (1.0f - shadupG1)) * _pivot[0] : midG;
-                  float shadupB1 = 2.0f * (midB/_pivot[0]) - log((midB/_pivot[0]) * (e * _shad[2] * 2.0f) + 1.0f)/log(e * _shad[2] * 2.0f + 1.0f);
-                  float shadupB = midB <= _pivot[0] && _shad[2] > 0.0f ? (shadupB1 + _shad[2] * (1.0f - shadupB1)) * _pivot[0] : midB;
-                  
-                  float shaddownR1 = shadupR/_pivot[0] + _shad[0]*2 * (1.0f - shadupR/_pivot[0]);
-                  float shaddownR = shadupR <= _pivot[0] && _shad[0] < 0.0f ? (log(shaddownR1 * (e * _shad[0] * -2.0f) + 1.0f)/log(e * _shad[0] * -2.0f + 1.0f)) * _pivot[0] : shadupR;
-                  float shaddownG1 = shadupG/_pivot[0] + _shad[1]*2 * (1.0f - shadupG/_pivot[0]);
-                  float shaddownG = shadupG <= _pivot[0] && _shad[1] < 0.0f ? (log(shaddownG1 * (e * _shad[1] * -2.0f) + 1.0f)/log(e * _shad[1] * -2.0f + 1.0f)) * _pivot[0] : shadupG;
-                  float shaddownB1 = shadupB/_pivot[0] + _shad[2]*2 * (1.0f - shadupB/_pivot[0]);
-                  float shaddownB = shadupB <= _pivot[0] && _shad[2] < 0.0f ? (log(shaddownB1 * (e * _shad[2] * -2.0f) + 1.0f)/log(e * _shad[2] * -2.0f + 1.0f)) * _pivot[0] : shadupB;
-                  
-                  float highupR1 = ((shaddownR - _pivot[1]) / (1.0f - _pivot[1])) * (1.0f + (_high[0] * 2.0f));
-                  float highupR = shaddownR >= _pivot[1] && _high[0] > 0.0f ? (2.0f * highupR1 - log(highupR1 * e * _high[0] + 1.0f)/log(e * _high[0] + 1.0f)) * (1.0f - _pivot[1]) + _pivot[1] : shaddownR;
-                  float highupG1 = ((shaddownG - _pivot[1]) / (1.0f - _pivot[1])) * (1.0f + (_high[1] * 2.0f));
-                  float highupG = shaddownG >= _pivot[1] && _high[1] > 0.0f ? (2.0f * highupG1 - log(highupG1 * e * _high[1] + 1.0f)/log(e * _high[1] + 1.0f)) * (1.0f - _pivot[1]) + _pivot[1] : shaddownG;
-                  float highupB1 = ((shaddownB - _pivot[1]) / (1.0f - _pivot[1])) * (1.0f + (_high[2] * 2.0f));
-                  float highupB = shaddownB >= _pivot[1] && _high[2] > 0.0f ? (2.0f * highupB1 - log(highupB1 * e * _high[2] + 1.0f)/log(e * _high[2] + 1.0f)) * (1.0f - _pivot[1]) + _pivot[1] : shaddownB;
-                  
-                  float highdownR1 = (highupR - _pivot[1]) / (1.0f - _pivot[1]);
-                  float highdownR = highupR >= _pivot[1] && _high[0] < 0.0f ? log(highdownR1 * (e * _high[0] * -2.0f) + 1.0f)/log(e * _high[0] * -2.0f + 1.0f) * (1.0f + _high[0]) * (1.0f - _pivot[1]) + _pivot[1]  : highupR;
-                  float highdownG1 = (highupG - _pivot[1]) / (1.0f - _pivot[1]);
-                  float highdownG = highupG >= _pivot[1] && _high[1] < 0.0f ? log(highdownG1 * (e * _high[1] * -2.0f) + 1.0f)/log(e * _high[1] * -2.0f + 1.0f) * (1.0f + _high[1]) * (1.0f - _pivot[1]) + _pivot[1]  : highupG;
-                  float highdownB1 = (highupB - _pivot[1]) / (1.0f - _pivot[1]);
-                  float highdownB = highupB >= _pivot[1] && _high[2] < 0.0f ? log(highdownB1 * (e * _high[2] * -2.0f) + 1.0f)/log(e * _high[2] * -2.0f + 1.0f) * (1.0f + _high[2]) * (1.0f - _pivot[1]) + _pivot[1]  : highupB;
-                  
-                  float outR = _display[0] != 1.0f ? highdownR : y/(height) >= _pivot[0] && y/(height) <= _pivot[0] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownR >= (y - 5)/(height) && highdownR <= (y + 5)/(height) ? 1.0f : 0.0f;
-                  float outG = _display[0] != 1.0f ? highdownG : y/(height) >= _pivot[1] && y/(height) <= _pivot[1] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownG >= (y - 5)/(height) && highdownG <= (y + 5)/(height) ? 1.0f : 0.0f;
-                  float outB = _display[0] != 1.0f ? highdownB : y/(height) >= _pivot[2] && y/(height) <= _pivot[2] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownB >= (y - 5)/(height) && highdownB <= (y + 5)/(height) ? 1.0f : 0.0f;
+                  float outR = _display[0] != 1.0f ? satR : y/(height) >= _pivot[0] && y/(height) <= _pivot[0] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satR >= (y - 5)/(height) && satR <= (y + 5)/(height) ? 1.0f : 0.0f;
+                  float outG = _display[0] != 1.0f ? satG : y/(height) >= _pivot[1] && y/(height) <= _pivot[1] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satG >= (y - 5)/(height) && satG <= (y + 5)/(height) ? 1.0f : 0.0f;
+                  float outB = _display[0] != 1.0f ? satB : y/(height) >= _pivot[2] && y/(height) <= _pivot[2] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satB >= (y - 5)/(height) && satB <= (y + 5)/(height) ? 1.0f : 0.0f;
                             
                   dstPix[0] = outR;
                   dstPix[1] = outG;
@@ -290,8 +298,11 @@ private:
 	OFX::DoubleParam* m_HighG;
 	OFX::DoubleParam* m_HighB;
 	OFX::DoubleParam* m_ShadP;
+	OFX::DoubleParam* m_ShadPP;
 	OFX::DoubleParam* m_HighP;
+	OFX::DoubleParam* m_HighPP;
 	OFX::DoubleParam* m_ContP;
+	OFX::DoubleParam* m_ContPP;
 	OFX::BooleanParam* m_Display;
 	
 };
@@ -334,8 +345,11 @@ FilmGradePlugin::FilmGradePlugin(OfxImageEffectHandle p_Handle)
 	m_HighG = fetchDoubleParam("highG");
 	m_HighB = fetchDoubleParam("highB");
 	m_ShadP = fetchDoubleParam("shadP");
+	m_ShadPP = fetchDoubleParam("shadPP");
 	m_HighP = fetchDoubleParam("highP");
+	m_HighPP = fetchDoubleParam("highPP");
 	m_ContP = fetchDoubleParam("contP");
+	m_ContPP = fetchDoubleParam("contPP");
 	m_Display = fetchBooleanParam("display");
 	
     
@@ -1185,6 +1199,48 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	endEditBlock();
     	
     }
+    
+    if (p_ParamName == "shadP" && p_Args.reason == OFX::eChangeUserEdit)
+    {
+    	float shadP = m_ShadP->getValueAtTime(p_Args.time);
+    	m_ShadPP->setValue(shadP);
+    	
+    }
+    
+    if (p_ParamName == "shadPP" && p_Args.reason == OFX::eChangeUserEdit)
+    {
+    	float shadPP = m_ShadPP->getValueAtTime(p_Args.time);
+    	m_ShadP->setValue(shadPP);
+    	
+    }
+    
+    if (p_ParamName == "highP" && p_Args.reason == OFX::eChangeUserEdit)
+    {
+    	float highP = m_HighP->getValueAtTime(p_Args.time);
+    	m_HighPP->setValue(highP);
+    	
+    }
+    
+    if (p_ParamName == "highPP" && p_Args.reason == OFX::eChangeUserEdit)
+    {
+    	float highPP = m_HighPP->getValueAtTime(p_Args.time);
+    	m_HighP->setValue(highPP);
+    	
+    }
+    
+    if (p_ParamName == "contP" && p_Args.reason == OFX::eChangeUserEdit)
+    {
+    	float contP = m_ContP->getValueAtTime(p_Args.time);
+    	m_ContPP->setValue(contP);
+    	
+    }
+    
+    if (p_ParamName == "contPP" && p_Args.reason == OFX::eChangeUserEdit)
+    {
+    	float contPP = m_ContPP->getValueAtTime(p_Args.time);
+    	m_ContP->setValue(contPP);
+    	
+    }
    
 }
          
@@ -1425,6 +1481,12 @@ void FilmGradePluginFactory::describeInContext(OFX::ImageEffectDescriptor& p_Des
     param->setDisplayRange(0.0, 3.0);
     page->addChild(*param);
     
+    param = defineScaleParam(p_Desc, "contP", "Contrast Pivot", "contrast pivot point", ecs);
+    param->setDefault(445.0);
+    param->setRange(0.0, 1023.0);
+    param->setIncrement(0.001);
+    param->setDisplayRange(0.0, 1023.0);
+    page->addChild(*param);
     
     GroupParamDescriptor* sat = p_Desc.defineGroupParam("Saturation RGB");
     sat->setOpen(false);
@@ -1528,6 +1590,12 @@ void FilmGradePluginFactory::describeInContext(OFX::ImageEffectDescriptor& p_Des
     param->setDisplayRange(-0.5, 0.5);
     page->addChild(*param);
     
+    param = defineScaleParam(p_Desc, "shadP", "Shadows Pivot", "shadows pivot point", smh);
+    param->setDefault(400.0);
+    param->setRange(0.0, 1023.0);
+    param->setIncrement(0.001);
+    param->setDisplayRange(0.0, 1023.0);
+    page->addChild(*param);
     
     GroupParamDescriptor* mid = p_Desc.defineGroupParam("Midtones RGB");
     mid->setOpen(false);
@@ -1622,7 +1690,13 @@ void FilmGradePluginFactory::describeInContext(OFX::ImageEffectDescriptor& p_Des
     param->setIncrement(0.001);
     param->setDisplayRange(-0.5, 0.5);
     page->addChild(*param);
-      
+    
+    param = defineScaleParam(p_Desc, "highP", "Highlights Pivot", "highlights pivot point", smh);
+    param->setDefault(500.0);
+    param->setRange(0.0, 1023.0);
+    param->setIncrement(0.001);
+    param->setDisplayRange(0.0, 1023.0);
+    page->addChild(*param);  
     
     GroupParamDescriptor* adv = p_Desc.defineGroupParam("Advanced");
     adv->setOpen(false);
@@ -1638,21 +1712,21 @@ void FilmGradePluginFactory::describeInContext(OFX::ImageEffectDescriptor& p_Des
     boolParam->setParent(*adv);
     page->addChild(*boolParam);
     
-    param = defineScaleParam(p_Desc, "shadP", "Shadows Pivot", "shadows pivot point", adv);
+    param = defineScaleParam(p_Desc, "shadPP", "Shadows Pivot", "shadows pivot point", adv);
     param->setDefault(400.0);
     param->setRange(0.0, 1023.0);
     param->setIncrement(0.001);
     param->setDisplayRange(0.0, 1023.0);
     page->addChild(*param);
     
-    param = defineScaleParam(p_Desc, "highP", "Highlights Pivot", "highlights pivot point", adv);
+    param = defineScaleParam(p_Desc, "highPP", "Highlights Pivot", "highlights pivot point", adv);
     param->setDefault(500.0);
     param->setRange(0.0, 1023.0);
     param->setIncrement(0.001);
     param->setDisplayRange(0.0, 1023.0);
     page->addChild(*param);
     
-    param = defineScaleParam(p_Desc, "contP", "Contrast Pivot", "contrast pivot point", adv);
+    param = defineScaleParam(p_Desc, "contPP", "Contrast Pivot", "contrast pivot point", adv);
     param->setDefault(445.0);
     param->setRange(0.0, 1023.0);
     param->setIncrement(0.001);

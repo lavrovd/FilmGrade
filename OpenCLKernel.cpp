@@ -163,10 +163,54 @@ const char *KernelSource = "\n" \
 "	    Red = w_Display != 1.0f ? SRC[0] : x / width;		\n" \
 "	    Green = w_Display != 1.0f ? SRC[1] : x / width;	\n" \
 "	    Blue = w_Display != 1.0f ? SRC[2] : x / width;		\n" \
+"	   															\n" \
+"	    expr1 = (w_ShadP / 2.0f) - (1.0f - w_HighP)/4.0f;		\n" \
+"	    expr2 = (1.0f - (1.0f - w_HighP)/2.0f) + (w_ShadP / 4.0f);		\n" \
+"	    expr3R = (Red - expr1) / (expr2 - expr1);		\n" \
+"	    expr3G = (Green - expr1) / (expr2 - expr1);		\n" \
+"	    expr3B = (Blue - expr1) / (expr2 - expr1);		\n" \
+"	    expr4 =  w_ContP < 0.5f ? 0.5f - (0.5f - w_ContP)/2.0f : 0.5f + (w_ContP - 0.5f)/2.0f;		\n" \
+"	    expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);	\n" \
+"	    expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);	\n" \
+"	    expr5B = expr3B > expr4 ? (expr3B - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3B /(2.0f*expr4);	\n" \
+"	    expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidR*4.0f) + expr3R;		\n" \
+"	    expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidG*4.0f) + expr3G;		\n" \
+"	    expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidB*4.0f) + expr3B;		\n" \
+"	    midR = Red >= expr1 && Red <= expr2 ? expr6R * (expr2 - expr1) + expr1 : Red;		\n" \
+"	    midG = Green >= expr1 && Green <= expr2 ? expr6G * (expr2 - expr1) + expr1 : Green;		\n" \
+"	    midB = Blue >= expr1 && Blue <= expr2 ? expr6B * (expr2 - expr1) + expr1 : Blue;		\n" \
+"													\n" \
+"	    shadupR1 = 2.0f * (midR/w_ShadP) - log((midR/w_ShadP) * (e * w_ShadR * 2.0f) + 1.0f)/log(e * w_ShadR * 2.0f + 1.0f);	\n" \
+"	    shadupR = midR < w_ShadP && w_ShadR > 0.0f ? (shadupR1 + w_ShadR * (1.0f - shadupR1)) * w_ShadP : midR;	\n" \
+"	    shadupG1 = 2.0f * (midG/w_ShadP) - log((midG/w_ShadP) * (e * w_ShadG * 2.0f) + 1.0f)/log(e * w_ShadG * 2.0f + 1.0f);	\n" \
+"	    shadupG = midG < w_ShadP && w_ShadG > 0.0f ? (shadupG1 + w_ShadG * (1.0f - shadupG1)) * w_ShadP : midG;	\n" \
+"	    shadupB1 = 2.0f * (midB/w_ShadP) - log((midB/w_ShadP) * (e * w_ShadB * 2.0f) + 1.0f)/log(e * w_ShadB * 2.0f + 1.0f);	\n" \
+"	    shadupB = midB < w_ShadP && w_ShadB > 0.0f ? (shadupB1 + w_ShadB * (1.0f - shadupB1)) * w_ShadP : midB;	\n" \
+"	   												\n" \
+"		shaddownR1 = shadupR/p_ShadP + p_ShadR*2 * (1.0f - shadupR/p_ShadP);	\n" \
+"	    shaddownR = shadupR < p_ShadP && p_ShadR < 0.0f ? (shaddownR1 >= 0.0f ? log(shaddownR1 * (e * p_ShadR * -2.0f) + 1.0f)/log(e * p_ShadR * -2.0f + 1.0f) : shaddownR1) * p_ShadP : shadupR;	\n" \
+"	    shaddownG1 = shadupG/p_ShadP + p_ShadG*2 * (1.0f - shadupG/p_ShadP);	\n" \
+"	    shaddownG = shadupG < p_ShadP && p_ShadG < 0.0f ? (shaddownG1 >= 0.0f ? log(shaddownG1 * (e * p_ShadG * -2.0f) + 1.0f)/log(e * p_ShadG * -2.0f + 1.0f) : shaddownG1) * p_ShadP : shadupG;	\n" \
+"	    shaddownB1 = shadupB/p_ShadP + p_ShadB*2 * (1.0f - shadupB/p_ShadP);	\n" \
+"	    shaddownB = shadupB < p_ShadP && p_ShadB < 0.0f ? (shaddownB1 >= 0.0f ? log(shaddownB1 * (e * p_ShadB * -2.0f) + 1.0f)/log(e * p_ShadB * -2.0f + 1.0f) : shaddownB1) * p_ShadP : shadupB;	\n" \
+"	   													\n" \
+"	    highupR1 = ((shaddownR - w_HighP) / (1.0f - w_HighP)) * (1.0f + (w_HighR * 2.0f));	\n" \
+"	    highupR = shaddownR > w_HighP && w_HighP < 1.0f && w_HighR > 0.0f ? (2.0f * highupR1 - log(highupR1 * e * w_HighR + 1.0f)/log(e * w_HighR + 1.0f)) * (1.00001f - w_HighP) + w_HighP : shaddownR;	\n" \
+"	    highupG1 = ((shaddownG - w_HighP) / (1.0f - w_HighP)) * (1.0f + (w_HighG * 2.0f));	\n" \
+"	    highupG = shaddownG > w_HighP && w_HighP < 1.0f && w_HighG > 0.0f ? (2.0f * highupG1 - log(highupG1 * e * w_HighG + 1.0f)/log(e * w_HighG + 1.0f)) * (1.00001f - w_HighP) + w_HighP : shaddownG;	\n" \
+"	    highupB1 = ((shaddownB - w_HighP) / (1.0f - w_HighP)) * (1.0f + (w_HighB * 2.0f));	\n" \
+"	    highupB = shaddownB > w_HighP && w_HighP < 1.0f && w_HighB > 0.0f ? (2.0f * highupB1 - log(highupB1 * e * w_HighB + 1.0f)/log(e * w_HighB + 1.0f)) * (1.00001f - w_HighP) + w_HighP : shaddownB;	\n" \
 "	   										\n" \
-"	    expR = Red + w_ExpR/100.0f;		\n" \
-"	    expG = Green + w_ExpG/100.0f;		\n" \
-"	    expB = Blue + w_ExpB/100.0f;		\n" \
+"	    highdownR1 = (highupR - w_HighP) / (1.0f - w_HighP);	\n" \
+"	    highdownR = highupR > w_HighP && w_HighP < 1.0f && w_HighR < 0.0f ? log(highdownR1 * (e * w_HighR * -2.0f) + 1.0f)/log(e * w_HighR * -2.0f + 1.0f) * (1.0f + w_HighR) * (1.00001f - w_HighP) + w_HighP : highupR;	\n" \
+"	    highdownG1 = (highupG - w_HighP) / (1.0f - w_HighP);	\n" \
+"	    highdownG = highupG > w_HighP && w_HighP < 1.0f && w_HighG < 0.0f ? log(highdownG1 * (e * w_HighG * -2.0f) + 1.0f)/log(e * w_HighG * -2.0f + 1.0f) * (1.0f + w_HighG) * (1.00001f - w_HighP) + w_HighP : highupG;	\n" \
+"	    highdownB1 = (highupB - w_HighP) / (1.0f - w_HighP);	\n" \
+"	    highdownB = highupB > w_HighP && w_HighP < 1.0f && w_HighB < 0.0f ? log(highdownB1 * (e * w_HighB * -2.0f) + 1.0f)/log(e * w_HighB * -2.0f + 1.0f) * (1.0f + w_HighB) * (1.00001f - w_HighP) + w_HighP : highupB;	\n" \
+"	   											\n" \
+"	    expR = highdownR + w_ExpR/100.0f;		\n" \
+"	    expG = highdownG + w_ExpG/100.0f;		\n" \
+"	    expB = highdownB + w_ExpB/100.0f;		\n" \
 "	   										\n" \
 "	    contR = (expR - w_ContP) * w_ContR + w_ContP;		\n" \
 "	    contG = (expG - w_ContP) * w_ContG + w_ContP;		\n" \
@@ -177,53 +221,9 @@ const char *KernelSource = "\n" \
 "	    satG = (1.0f - (w_SatR*0.2126f + w_SatG*0.7152f + w_SatB*0.0722f)) * luma + contG * w_SatG;		\n" \
 "	    satB = (1.0f - (w_SatR*0.2126f + w_SatG*0.7152f + w_SatB*0.0722f)) * luma + contB * w_SatB;		\n" \
 "	   															\n" \
-"	    expr1 = (w_ShadP / 2.0f) - (1.0f - w_HighP)/4.0f;		\n" \
-"	    expr2 = (1.0f - (1.0f - w_HighP)/2.0f) + (w_ShadP / 4.0f);		\n" \
-"	    expr3R = (satR - expr1) / (expr2 - expr1);		\n" \
-"	    expr3G = (satG - expr1) / (expr2 - expr1);		\n" \
-"	    expr3B = (satB - expr1) / (expr2 - expr1);		\n" \
-"	    expr4 =  w_ContP < 0.5f ? 0.5f - (0.5f - w_ContP)/2.0f : 0.5f + (w_ContP - 0.5f)/2.0f;		\n" \
-"	    expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);	\n" \
-"	    expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);	\n" \
-"	    expr5B = expr3B > expr4 ? (expr3B - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3B /(2.0f*expr4);	\n" \
-"	    expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidR*4.0f) + expr3R;		\n" \
-"	    expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidG*4.0f) + expr3G;		\n" \
-"	    expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidB*4.0f) + expr3B;		\n" \
-"	    midR = satR >= expr1 && satR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : satR;		\n" \
-"	    midG = satG >= expr1 && satG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : satG;		\n" \
-"	    midB = satB >= expr1 && satB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : satB;		\n" \
-"													\n" \
-"	    shadupR1 = 2.0f * (midR/w_ShadP) - log((midR/w_ShadP) * (e * w_ShadR * 2.0f) + 1.0f)/log(e * w_ShadR * 2.0f + 1.0f);	\n" \
-"	    shadupR = midR <= w_ShadP && w_ShadR > 0.0f ? (shadupR1 + w_ShadR * (1.0f - shadupR1)) * w_ShadP : midR;	\n" \
-"	    shadupG1 = 2.0f * (midG/w_ShadP) - log((midG/w_ShadP) * (e * w_ShadG * 2.0f) + 1.0f)/log(e * w_ShadG * 2.0f + 1.0f);	\n" \
-"	    shadupG = midG <= w_ShadP && w_ShadG > 0.0f ? (shadupG1 + w_ShadG * (1.0f - shadupG1)) * w_ShadP : midG;	\n" \
-"	    shadupB1 = 2.0f * (midB/w_ShadP) - log((midB/w_ShadP) * (e * w_ShadB * 2.0f) + 1.0f)/log(e * w_ShadB * 2.0f + 1.0f);	\n" \
-"	    shadupB = midB <= w_ShadP && w_ShadB > 0.0f ? (shadupB1 + w_ShadB * (1.0f - shadupB1)) * w_ShadP : midB;	\n" \
-"	   												\n" \
-"	    shaddownR1 = shadupR/w_ShadP + w_ShadR*2 * (1.0f - shadupR/w_ShadP);	\n" \
-"	    shaddownR = shadupR <= w_ShadP && p_ShadR < 0.0f ? (log(shaddownR1 * (e * w_ShadR * -2.0f) + 1.0f)/log(e * w_ShadR * -2.0f + 1.0f)) * w_ShadP : shadupR;	\n" \
-"	    shaddownG1 = shadupG/w_ShadP + w_ShadG*2 * (1.0f - shadupG/w_ShadP);	\n" \
-"	    shaddownG = shadupG <= w_ShadP && w_ShadG < 0.0f ? (log(shaddownG1 * (e * w_ShadG * -2.0f) + 1.0f)/log(e * w_ShadG * -2.0f + 1.0f)) * w_ShadP : shadupG;	\n" \
-"	    shaddownB1 = shadupB/w_ShadP + p_ShadB*2 * (1.0f - shadupB/w_ShadP);	\n" \
-"	    shaddownB = shadupB <= w_ShadP && w_ShadB < 0.0f ? (log(shaddownB1 * (e * w_ShadB * -2.0f) + 1.0f)/log(e * w_ShadB * -2.0f + 1.0f)) * w_ShadP : shadupB;	\n" \
-"	   													\n" \
-"	    highupR1 = ((shaddownR - w_HighP) / (1.0f - w_HighP)) * (1.0f + (w_HighR * 2.0f));	\n" \
-"	    highupR = shaddownR >= w_HighP && w_HighR > 0.0f ? (2.0f * highupR1 - log(highupR1 * e * w_HighR + 1.0f)/log(e * w_HighR + 1.0f)) * (1.0f - w_HighP) + w_HighP : shaddownR;	\n" \
-"	    highupG1 = ((shaddownG - w_HighP) / (1.0f - w_HighP)) * (1.0f + (w_HighG * 2.0f));	\n" \
-"	    highupG = shaddownG >= w_HighP && w_HighG > 0.0f ? (2.0f * highupG1 - log(highupG1 * e * w_HighG + 1.0f)/log(e * w_HighG + 1.0f)) * (1.0f - w_HighP) + w_HighP : shaddownG;	\n" \
-"	    highupB1 = ((shaddownB - w_HighP) / (1.0f - w_HighP)) * (1.0f + (w_HighB * 2.0f));	\n" \
-"	    highupB = shaddownB >= w_HighP && w_HighB > 0.0f ? (2.0f * highupB1 - log(highupB1 * e * w_HighB + 1.0f)/log(e * w_HighB + 1.0f)) * (1.0f - w_HighP) + w_HighP : shaddownB;	\n" \
-"	   										\n" \
-"	    highdownR1 = (highupR - w_HighP) / (1.0f - w_HighP);	\n" \
-"	    highdownR = highupR >= w_HighP && w_HighR < 0.0f ? log(highdownR1 * (e * w_HighR * -2.0f) + 1.0f)/log(e * w_HighR * -2.0f + 1.0f) * (1.0f + w_HighR) * (1.0f - w_HighP) + w_HighP : highupR;	\n" \
-"	    highdownG1 = (highupG - w_HighP) / (1.0f - w_HighP);	\n" \
-"	    highdownG = highupG >= w_HighP && w_HighG < 0.0f ? log(highdownG1 * (e * w_HighG * -2.0f) + 1.0f)/log(e * w_HighG * -2.0f + 1.0f) * (1.0f + w_HighG) * (1.0f - w_HighP) + w_HighP : highupG;	\n" \
-"	    highdownB1 = (highupB - w_HighP) / (1.0f - w_HighP);	\n" \
-"	    highdownB = highupB >= w_HighP && w_HighB < 0.0f ? log(highdownB1 * (e * w_HighB * -2.0f) + 1.0f)/log(e * w_HighB * -2.0f + 1.0f) * (1.0f + w_HighB) * (1.0f - w_HighP) + w_HighP : highupB;	\n" \
-"	   											\n" \
-"	    SRC[0] = w_Display != 1.0f ? highdownR : y / height >= w_ShadP && y / height  <= w_ShadP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownR >= (y - 5) / height && highdownR <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
-"	    SRC[1] = w_Display != 1.0f ? highdownG : y / height >= w_HighP && y / height  <= w_HighP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownG >= (y - 5) / height && highdownG <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
-"	    SRC[2] = w_Display != 1.0f ? highdownB : y / height >= w_ContP && y / height  <= w_ContP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : highdownB >= (y - 5) / height && highdownB <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
+"	    SRC[0] = w_Display != 1.0f ? satR : y / height >= w_ShadP && y / height  <= w_ShadP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satR >= (y - 5) / height && satR <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
+"	    SRC[1] = w_Display != 1.0f ? satG : y / height >= w_HighP && y / height  <= w_HighP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satG >= (y - 5) / height && satG <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
+"	    SRC[2] = w_Display != 1.0f ? satB : y / height >= w_ContP && y / height  <= w_ContP + 0.005f ? (fmod((float)x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satB >= (y - 5) / height && satB <= (y + 5) / height ? 1.0f : 0.0f;	\n" \
 "											\n" \
 "       p_Output[index + 0] = SRC[0];				\n" \
 "       p_Output[index + 1] = SRC[1];				\n" \
