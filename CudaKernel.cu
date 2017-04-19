@@ -21,11 +21,15 @@ __global__ void FilmGradeKernel(int p_Width, int p_Height, float p_ExpR, float p
 	   float Green = p_Display != 1.0f ? p_Input[index + 1] : x / width;
 	   float Blue = p_Display != 1.0f ? p_Input[index + 2] : x / width;
 	   
+	   float expR = Red + p_ExpR/100.0f;
+	   float expG = Green + p_ExpG/100.0f;
+	   float expB = Blue + p_ExpB/100.0f;
+	   
 	   float expr1 = (p_ShadP / 2.0f) - (1.0f - p_HighP)/4.0f;
 	   float expr2 = (1.0f - (1.0f - p_HighP)/2.0f) + (p_ShadP / 4.0f);
-	   float expr3R = (Red - expr1) / (expr2 - expr1);
-	   float expr3G = (Green - expr1) / (expr2 - expr1);
-	   float expr3B = (Blue - expr1) / (expr2 - expr1);
+	   float expr3R = (expR - expr1) / (expr2 - expr1);
+	   float expr3G = (expG - expr1) / (expr2 - expr1);
+	   float expr3B = (expB - expr1) / (expr2 - expr1);
 	   float expr4 =  p_ContP < 0.5f ? 0.5f - (0.5f - p_ContP)/2.0f : 0.5f + (p_ContP - 0.5f)/2.0f;
 	   float expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);
 	   float expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);
@@ -33,15 +37,15 @@ __global__ void FilmGradeKernel(int p_Width, int p_Height, float p_ExpR, float p
 	   float expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidR*4.0f) + expr3R;
 	   float expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidG*4.0f) + expr3G;
 	   float expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidB*4.0f) + expr3B;
-	   float midR = Red >= expr1 && Red <= expr2 ? expr6R * (expr2 - expr1) + expr1 : Red;
-	   float midG = Green >= expr1 && Green <= expr2 ? expr6G * (expr2 - expr1) + expr1 : Green;
-	   float midB = Blue >= expr1 && Blue <= expr2 ? expr6B * (expr2 - expr1) + expr1 : Blue;
-
-	   float shadupR1 = 2.0f * (midR/p_ShadP) - log((midR/p_ShadP) * (e * p_ShadR * 2.0f) + 1.0f)/log(e * p_ShadR * 2.0f + 1.0f);
+	   float midR = expR >= expr1 && expR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : expR;
+	   float midG = expG >= expr1 && expG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : expG;
+	   float midB = expB >= expr1 && expB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : expB;
+		
+	   float shadupR1 = midR > 0.0f ? 2.0f * (midR/p_ShadP) - log((midR/p_ShadP) * (e * p_ShadR * 2.0f) + 1.0f)/log(e * p_ShadR * 2.0f + 1.0f) : midR;
 	   float shadupR = midR < p_ShadP && p_ShadR > 0.0f ? (shadupR1 + p_ShadR * (1.0f - shadupR1)) * p_ShadP : midR;
-	   float shadupG1 = 2.0f * (midG/p_ShadP) - log((midG/p_ShadP) * (e * p_ShadG * 2.0f) + 1.0f)/log(e * p_ShadG * 2.0f + 1.0f);
+	   float shadupG1 = midG > 0.0f ? 2.0f * (midG/p_ShadP) - log((midG/p_ShadP) * (e * p_ShadG * 2.0f) + 1.0f)/log(e * p_ShadG * 2.0f + 1.0f) : midG;
 	   float shadupG = midG < p_ShadP && p_ShadG > 0.0f ? (shadupG1 + p_ShadG * (1.0f - shadupG1)) * p_ShadP : midG;
-	   float shadupB1 = 2.0f * (midB/p_ShadP) - log((midB/p_ShadP) * (e * p_ShadB * 2.0f) + 1.0f)/log(e * p_ShadB * 2.0f + 1.0f);
+	   float shadupB1 = midB > 0.0f ? 2.0f * (midB/p_ShadP) - log((midB/p_ShadP) * (e * p_ShadB * 2.0f) + 1.0f)/log(e * p_ShadB * 2.0f + 1.0f) : midB;
 	   float shadupB = midB < p_ShadP && p_ShadB > 0.0f ? (shadupB1 + p_ShadB * (1.0f - shadupB1)) * p_ShadP : midB;
 	   
 	   float shaddownR1 = shadupR/p_ShadP + p_ShadR*2 * (1.0f - shadupR/p_ShadP);
@@ -65,13 +69,9 @@ __global__ void FilmGradeKernel(int p_Width, int p_Height, float p_ExpR, float p
 	   float highdownB1 = (highupB - p_HighP) / (1.0f - p_HighP);
 	   float highdownB = highupB > p_HighP && p_HighP < 1.0f && p_HighB < 0.0f ? log(highdownB1 * (e * p_HighB * -2.0f) + 1.0f)/log(e * p_HighB * -2.0f + 1.0f) * (1.0f + p_HighB) * (1.0f - p_HighP) + p_HighP : highupB;
 	   
-	   float expR = highdownR + p_ExpR/100.0f;
-	   float expG = highdownG + p_ExpG/100.0f;
-	   float expB = highdownB + p_ExpB/100.0f;
-	   
-	   float contR = (expR - p_ContP) * p_ContR + p_ContP;
-	   float contG = (expG - p_ContP) * p_ContG + p_ContP;
-	   float contB = (expB - p_ContP) * p_ContB + p_ContP;
+	   float contR = (highdownR - p_ContP) * p_ContR + p_ContP;
+	   float contG = (highdownG - p_ContP) * p_ContG + p_ContP;
+	   float contB = (highdownB - p_ContP) * p_ContB + p_ContP;
 	   
 	   float luma = contR * 0.2126f + contG * 0.7152f + contB * 0.0722f;
 	   float satR = (1.0f - (p_SatR*0.2126f + p_SatG* 0.7152f + p_SatB*0.0722f)) * luma + contR * p_SatR;

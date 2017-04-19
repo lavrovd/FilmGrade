@@ -117,12 +117,16 @@ void ImageScaler::multiThreadProcessImages(OfxRectI p_ProcWindow)
             	  float Red = _display[0] != 1.0f ? srcPix[0] : (x / width);
             	  float Green = _display[0] != 1.0f ? srcPix[1] : (x / width);
             	  float Blue = _display[0] != 1.0f ? srcPix[2] : (x / width);
-                  
+            	  
+            	  float expR = Red + _exp[0]/100.0f;
+                  float expG = Green + _exp[1]/100.0f;
+                  float expB = Blue + _exp[2]/100.0f;
+                   
                   float expr1 = (_pivot[0] / 2.0f) - (1.0f - _pivot[1])/4.0f;
 				  float expr2 = (1.0f - (1.0f - _pivot[1])/2.0f) + (_pivot[0] / 4.0f);
-				  float expr3R = (Red - expr1) / (expr2 - expr1);
-				  float expr3G = (Green - expr1) / (expr2 - expr1);
-				  float expr3B = (Blue - expr1) / (expr2 - expr1);
+				  float expr3R = (expR - expr1) / (expr2 - expr1);
+				  float expr3G = (expG - expr1) / (expr2 - expr1);
+				  float expr3B = (expB - expr1) / (expr2 - expr1);
 				  float expr4 =  _pivot[2] < 0.5f ? 0.5f - (0.5f - _pivot[2])/2.0f : 0.5f + (_pivot[2] - 0.5f)/2.0f;
 				  float expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);
 				  float expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);
@@ -130,25 +134,17 @@ void ImageScaler::multiThreadProcessImages(OfxRectI p_ProcWindow)
 				  float expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[0]*4.0f) + expr3R;
 				  float expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[1]*4.0f) + expr3G;
 				  float expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * _mid[2]*4.0f) + expr3B;
-				  float midR = Red >= expr1 && Red <= expr2 ? expr6R * (expr2 - expr1) + expr1 : Red;
-				  float midG = Green >= expr1 && Green <= expr2 ? expr6G * (expr2 - expr1) + expr1 : Green;
-				  float midB = Blue >= expr1 && Blue <= expr2 ? expr6B * (expr2 - expr1) + expr1 : Blue;
-
-                  float shadupR1 = 2.0f * (midR/_pivot[0]) - log((midR/_pivot[0]) * (e * _shad[0] * 2.0f) + 1.0f)/log(e * _shad[0] * 2.0f + 1.0f);
+				  float midR = expR >= expr1 && expR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : expR;
+				  float midG = expG >= expr1 && expG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : expG;
+				  float midB = expB >= expr1 && expB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : expB;
+				  
+                  float shadupR1 = midR > 0.0f ? 2.0f * (midR/_pivot[0]) - log((midR/_pivot[0]) * (e * _shad[0] * 2.0f) + 1.0f)/log(e * _shad[0] * 2.0f + 1.0f) : midR;
                   float shadupR = midR < _pivot[0] && _shad[0] > 0.0f ? (shadupR1 + _shad[0] * (1.0f - shadupR1)) * _pivot[0] : midR;
-                  float shadupG1 = 2.0f * (midG/_pivot[0]) - log((midG/_pivot[0]) * (e * _shad[1] * 2.0f) + 1.0f)/log(e * _shad[1] * 2.0f + 1.0f);
+                  float shadupG1 = midG > 0.0f ? 2.0f * (midG/_pivot[0]) - log((midG/_pivot[0]) * (e * _shad[1] * 2.0f) + 1.0f)/log(e * _shad[1] * 2.0f + 1.0f) : midG;
                   float shadupG = midG < _pivot[0] && _shad[1] > 0.0f ? (shadupG1 + _shad[1] * (1.0f - shadupG1)) * _pivot[0] : midG;
-                  float shadupB1 = 2.0f * (midB/_pivot[0]) - log((midB/_pivot[0]) * (e * _shad[2] * 2.0f) + 1.0f)/log(e * _shad[2] * 2.0f + 1.0f);
+                  float shadupB1 = midB > 0.0f ? 2.0f * (midB/_pivot[0]) - log((midB/_pivot[0]) * (e * _shad[2] * 2.0f) + 1.0f)/log(e * _shad[2] * 2.0f + 1.0f) : midB;
                   float shadupB = midB < _pivot[0] && _shad[2] > 0.0f ? (shadupB1 + _shad[2] * (1.0f - shadupB1)) * _pivot[0] : midB;
                   
-                  /*
-                  float shaddownR1 = log((shadupR/_pivot[0]) * (e * _shad[0] * -10.0f) + 1.0f)/log(e * _shad[0] * -10.0f + 1.0f);
-                  float shaddownR = shadupR < _pivot[0] && _shad[0] < 0.0f ? (shaddownR1 + _shad[0] * 10.0f * (1.0f - shaddownR1)) * _pivot[0] : shadupR;
-                  float shaddownG1 = log((shadupG/_pivot[0]) * (e * _shad[0] * -10.0f) + 1.0f)/log(e * _shad[0] * -10.0f + 1.0f);
-                  float shaddownG = shadupG < _pivot[0] && _shad[0] < 0.0f ? (shaddownG1 + _shad[0] * 10.0f * (1.0f - shaddownG1)) * _pivot[0] : shadupG;
-                  float shaddownB1 = log((shadupB/_pivot[0]) * (e * _shad[0] * -10.0f) + 1.0f)/log(e * _shad[0] * -10.0f + 1.0f);
-                  float shaddownB = shadupB < _pivot[0] && _shad[0] < 0.0f ? (shaddownB1 + _shad[0] * 10.0f * (1.0f - shaddownB1)) * _pivot[0] : shadupB;
-                  */
                   float shaddownR1 = (shadupR/_pivot[0]) + (_shad[0] * 2.0f * (1.0f - shadupR/_pivot[0]));
                   float shaddownR = shadupR < _pivot[0] && _shad[0] < 0.0f ? (shaddownR1 >= 0.0f ? log(shaddownR1 * (e * _shad[0] * -2.0f) + 1.0f)/log(e * _shad[0] * -2.0f + 1.0f) : shaddownR1) * _pivot[0] : shadupR;
                   float shaddownG1 = (shadupG/_pivot[0]) + (_shad[1] * 2.0f * (1.0f - shadupG/_pivot[0]));
@@ -170,13 +166,9 @@ void ImageScaler::multiThreadProcessImages(OfxRectI p_ProcWindow)
                   float highdownB1 = (highupB - _pivot[1]) / (1.0f - _pivot[1]);
                   float highdownB = highupB > _pivot[1] && _pivot[1] < 1.0f && _high[2] < 0.0f ? log(highdownB1 * (e * _high[2] * -2.0f) + 1.0f)/log(e * _high[2] * -2.0f + 1.0f) * (1.0f + _high[2]) * (1.0f - _pivot[1]) + _pivot[1]  : highupB;
                   
-                  float expR = highdownR + _exp[0]/100.0f;
-                  float expG = highdownG + _exp[1]/100.0f;
-                  float expB = highdownB + _exp[2]/100.0f;
-                  
-                  float contR = (expR - _pivot[2]) * _cont[0] + _pivot[2];
-                  float contG = (expG - _pivot[2]) * _cont[1] + _pivot[2];
-                  float contB = (expB - _pivot[2]) * _cont[2] + _pivot[2];
+                  float contR = (highdownR - _pivot[2]) * _cont[0] + _pivot[2];
+                  float contG = (highdownG - _pivot[2]) * _cont[1] + _pivot[2];
+                  float contB = (highdownB - _pivot[2]) * _cont[2] + _pivot[2];
                   
                   float luma = contR * 0.2126f + contG * 0.7152f + contB * 0.0722f;
                   float satR = (1.0f - (_sat[0]*0.2126f + _sat[1]* 0.7152f + _sat[2]*0.0722f)) * luma + contR * _sat[0];
@@ -186,7 +178,7 @@ void ImageScaler::multiThreadProcessImages(OfxRectI p_ProcWindow)
                   float outR = _display[0] != 1.0f ? satR : y/(height) >= _pivot[0] && y/(height) <= _pivot[0] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satR >= (y - 5)/(height) && satR <= (y + 5)/(height) ? 1.0f : 0.0f;
                   float outG = _display[0] != 1.0f ? satG : y/(height) >= _pivot[1] && y/(height) <= _pivot[1] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satG >= (y - 5)/(height) && satG <= (y + 5)/(height) ? 1.0f : 0.0f;
                   float outB = _display[0] != 1.0f ? satB : y/(height) >= _pivot[2] && y/(height) <= _pivot[2] + 0.005f ? (fmod(x, 2.0f) != 0.0f ? 1.0f : 0.0f) : satB >= (y - 5)/(height) && satB <= (y + 5)/(height) ? 1.0f : 0.0f;
-                            
+                  
                   dstPix[0] = outR;
                   dstPix[1] = outG;
                   dstPix[2] = outB;

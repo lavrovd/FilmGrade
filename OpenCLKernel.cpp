@@ -164,11 +164,15 @@ const char *KernelSource = "\n" \
 "	    Green = w_Display != 1.0f ? SRC[1] : x / width;	\n" \
 "	    Blue = w_Display != 1.0f ? SRC[2] : x / width;		\n" \
 "	   															\n" \
+"	    expR = Red + w_ExpR/100.0f;		\n" \
+"	    expG = Green + w_ExpG/100.0f;		\n" \
+"	    expB = Blue + w_ExpB/100.0f;		\n" \
+"	   															\n" \
 "	    expr1 = (w_ShadP / 2.0f) - (1.0f - w_HighP)/4.0f;		\n" \
 "	    expr2 = (1.0f - (1.0f - w_HighP)/2.0f) + (w_ShadP / 4.0f);		\n" \
-"	    expr3R = (Red - expr1) / (expr2 - expr1);		\n" \
-"	    expr3G = (Green - expr1) / (expr2 - expr1);		\n" \
-"	    expr3B = (Blue - expr1) / (expr2 - expr1);		\n" \
+"	    expr3R = (expR - expr1) / (expr2 - expr1);		\n" \
+"	    expr3G = (expG - expr1) / (expr2 - expr1);		\n" \
+"	    expr3B = (expB - expr1) / (expr2 - expr1);		\n" \
 "	    expr4 =  w_ContP < 0.5f ? 0.5f - (0.5f - w_ContP)/2.0f : 0.5f + (w_ContP - 0.5f)/2.0f;		\n" \
 "	    expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);	\n" \
 "	    expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);	\n" \
@@ -176,16 +180,16 @@ const char *KernelSource = "\n" \
 "	    expr6R = (((sin(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidR*4.0f) + expr3R;		\n" \
 "	    expr6G = (((sin(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidG*4.0f) + expr3G;		\n" \
 "	    expr6B = (((sin(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * w_MidB*4.0f) + expr3B;		\n" \
-"	    midR = Red >= expr1 && Red <= expr2 ? expr6R * (expr2 - expr1) + expr1 : Red;		\n" \
-"	    midG = Green >= expr1 && Green <= expr2 ? expr6G * (expr2 - expr1) + expr1 : Green;		\n" \
-"	    midB = Blue >= expr1 && Blue <= expr2 ? expr6B * (expr2 - expr1) + expr1 : Blue;		\n" \
+"	    midR = expR >= expr1 && expR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : expR;		\n" \
+"	    midG = expG >= expr1 && expG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : expG;		\n" \
+"	    midB = expB >= expr1 && expB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : expB;		\n" \
 "													\n" \
-"	    shadupR1 = 2.0f * (midR/w_ShadP) - log((midR/w_ShadP) * (e * w_ShadR * 2.0f) + 1.0f)/log(e * w_ShadR * 2.0f + 1.0f);	\n" \
-"	    shadupR = midR < w_ShadP && w_ShadR > 0.0f ? (shadupR1 + w_ShadR * (1.0f - shadupR1)) * w_ShadP : midR;	\n" \
-"	    shadupG1 = 2.0f * (midG/w_ShadP) - log((midG/w_ShadP) * (e * w_ShadG * 2.0f) + 1.0f)/log(e * w_ShadG * 2.0f + 1.0f);	\n" \
-"	    shadupG = midG < w_ShadP && w_ShadG > 0.0f ? (shadupG1 + w_ShadG * (1.0f - shadupG1)) * w_ShadP : midG;	\n" \
-"	    shadupB1 = 2.0f * (midB/w_ShadP) - log((midB/w_ShadP) * (e * w_ShadB * 2.0f) + 1.0f)/log(e * w_ShadB * 2.0f + 1.0f);	\n" \
-"	    shadupB = midB < w_ShadP && w_ShadB > 0.0f ? (shadupB1 + w_ShadB * (1.0f - shadupB1)) * w_ShadP : midB;	\n" \
+"		shadupR1 = midR > 0.0f ? 2.0f * (midR/p_ShadP) - log((midR/p_ShadP) * (e * p_ShadR * 2.0f) + 1.0f)/log(e * p_ShadR * 2.0f + 1.0f) : midR;	\n" \
+"		shadupR = midR < p_ShadP && p_ShadR > 0.0f ? (shadupR1 + p_ShadR * (1.0f - shadupR1)) * p_ShadP : midR;	\n" \
+"		shadupG1 = midG > 0.0f ? 2.0f * (midG/p_ShadP) - log((midG/p_ShadP) * (e * p_ShadG * 2.0f) + 1.0f)/log(e * p_ShadG * 2.0f + 1.0f) : midG;	\n" \
+"		shadupG = midG < p_ShadP && p_ShadG > 0.0f ? (shadupG1 + p_ShadG * (1.0f - shadupG1)) * p_ShadP : midG;	\n" \
+"		shadupB1 = midB > 0.0f ? 2.0f * (midB/p_ShadP) - log((midB/p_ShadP) * (e * p_ShadB * 2.0f) + 1.0f)/log(e * p_ShadB * 2.0f + 1.0f) : midB;	\n" \
+"		shadupB = midB < p_ShadP && p_ShadB > 0.0f ? (shadupB1 + p_ShadB * (1.0f - shadupB1)) * p_ShadP : midB;	\n" \
 "	   												\n" \
 "		shaddownR1 = shadupR/p_ShadP + p_ShadR*2 * (1.0f - shadupR/p_ShadP);	\n" \
 "	    shaddownR = shadupR < p_ShadP && p_ShadR < 0.0f ? (shaddownR1 >= 0.0f ? log(shaddownR1 * (e * p_ShadR * -2.0f) + 1.0f)/log(e * p_ShadR * -2.0f + 1.0f) : shaddownR1) * p_ShadP : shadupR;	\n" \
@@ -208,13 +212,9 @@ const char *KernelSource = "\n" \
 "	    highdownB1 = (highupB - w_HighP) / (1.0f - w_HighP);	\n" \
 "	    highdownB = highupB > w_HighP && w_HighP < 1.0f && w_HighB < 0.0f ? log(highdownB1 * (e * w_HighB * -2.0f) + 1.0f)/log(e * w_HighB * -2.0f + 1.0f) * (1.0f + w_HighB) * (1.00001f - w_HighP) + w_HighP : highupB;	\n" \
 "	   											\n" \
-"	    expR = highdownR + w_ExpR/100.0f;		\n" \
-"	    expG = highdownG + w_ExpG/100.0f;		\n" \
-"	    expB = highdownB + w_ExpB/100.0f;		\n" \
-"	   										\n" \
-"	    contR = (expR - w_ContP) * w_ContR + w_ContP;		\n" \
-"	    contG = (expG - w_ContP) * w_ContG + w_ContP;		\n" \
-"	    contB = (expB - w_ContP) * w_ContB + w_ContP;		\n" \
+"	    contR = (highdownR - w_ContP) * w_ContR + w_ContP;		\n" \
+"	    contG = (highdownG - w_ContP) * w_ContG + w_ContP;		\n" \
+"	    contB = (highdownB - w_ContP) * w_ContB + w_ContP;		\n" \
 "	   															\n" \
 "	    luma = contR * 0.2126f + contG * 0.7152f + contB * 0.0722f;		\n" \
 "	    satR = (1.0f - (w_SatR*0.2126f + w_SatG*0.7152f + w_SatB*0.0722f)) * luma + contR * w_SatR;		\n" \
