@@ -2,6 +2,9 @@
 
 #include <stdio.h>
 #include <cmath>
+using std::string;
+#include <string> 
+#include <fstream>
 
 #include "ofxsImageEffect.h"
 #include "ofxsMultiThread.h"
@@ -13,7 +16,7 @@
 #define kPluginDescription "Film style grading"
 #define kPluginIdentifier "OpenFX.Yo.FilmGrade"
 #define kPluginVersionMajor 1
-#define kPluginVersionMinor 2
+#define kPluginVersionMinor 3
 
 #define kSupportsTiles false
 #define kSupportsMultiResolution false
@@ -296,6 +299,10 @@ private:
 	OFX::DoubleParam* m_ContP;
 	OFX::DoubleParam* m_ContPP;
 	OFX::BooleanParam* m_Display;
+	OFX::StringParam* m_Path;
+	OFX::PushButtonParam* m_Button1;
+	OFX::PushButtonParam* m_Button2;
+
 	
 };
 
@@ -343,6 +350,9 @@ FilmGradePlugin::FilmGradePlugin(OfxImageEffectHandle p_Handle)
 	m_ContP = fetchDoubleParam("contP");
 	m_ContPP = fetchDoubleParam("contPP");
 	m_Display = fetchBooleanParam("display");
+	m_Path = fetchStringParam("path");
+	m_Button1 = fetchPushButtonParam("button1");
+	m_Button2 = fetchPushButtonParam("button2");
 	
     
 }
@@ -1233,7 +1243,809 @@ void FilmGradePlugin::changedParam(const OFX::InstanceChangedArgs& p_Args, const
     	m_ContP->setValue(contPP);
     	
     }
-   
+	
+	if(p_ParamName == "button1")
+    {
+	
+	#define kDCTL1 \
+	"// FilmGrade DCTL export\n" \
+	"\n" \
+	"__DEVICE__ float3 transform(int p_Width, int p_Height, int p_X, int p_Y, float p_R, float p_G, float p_B)\n" \
+	"{\n" \
+	"\n"
+   	 
+	#define kDCTL2 \
+	"   float e = 2.718281828459045;\n" \
+	"   float pie = 3.141592653589793;\n" \
+	"\n" \
+	"   float width = p_Width;\n" \
+	"   float height = p_Height;    	\n" \
+	"		  \n" \
+	"   float Red = p_Display != 1.0f ? p_R : p_X / width;\n" \
+	"   float Green = p_Display != 1.0f ? p_G : p_X / width;\n" \
+	"   float Blue = p_Display != 1.0f ? p_B : p_X / width;\n" \
+	"\n" \
+	"   float expR = Red + p_ExpR/100.0f;\n" \
+	"   float expG = Green + p_ExpG/100.0f;\n" \
+	"   float expB = Blue + p_ExpB/100.0f;\n" \
+	"\n" \
+	"   float expr1 = (p_ShadP / 2.0f) - (1.0f - p_HighP)/4.0f;\n" \
+	"   float expr2 = (1.0f - (1.0f - p_HighP)/2.0f) + (p_ShadP / 4.0f);\n" \
+	"   float expr3R = (expR - expr1) / (expr2 - expr1);\n" \
+	"   float expr3G = (expG - expr1) / (expr2 - expr1);\n" \
+	"   float expr3B = (expB - expr1) / (expr2 - expr1);\n" \
+	"   float expr4 =  p_ContP < 0.5f ? 0.5f - (0.5f - p_ContP)/2.0f : 0.5f + (p_ContP - 0.5f)/2.0f;\n" \
+	"   float expr5R = expr3R > expr4 ? (expr3R - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3R /(2.0f*expr4);\n" \
+	"   float expr5G = expr3G > expr4 ? (expr3G - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3G /(2.0f*expr4);\n" \
+	"   float expr5B = expr3B > expr4 ? (expr3B - expr4) / (2.0f - 2.0f*expr4) + 0.5f : expr3B /(2.0f*expr4);\n" \
+	"   float expr6R = (((_sinf(2.0f * pie * (expr5R -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidR*4.0f) + expr3R;\n" \
+	"   float expr6G = (((_sinf(2.0f * pie * (expr5G -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidG*4.0f) + expr3G;\n" \
+	"   float expr6B = (((_sinf(2.0f * pie * (expr5B -1.0f/4.0f)) + 1.0f) / 20.0f) * p_MidB*4.0f) + expr3B;\n" \
+	"   float midR = expR >= expr1 && expR <= expr2 ? expr6R * (expr2 - expr1) + expr1 : expR;\n" \
+	"   float midG = expG >= expr1 && expG <= expr2 ? expr6G * (expr2 - expr1) + expr1 : expG;\n" \
+	"   float midB = expB >= expr1 && expB <= expr2 ? expr6B * (expr2 - expr1) + expr1 : expB;\n" \
+	"\n" \
+	"   float shadupR1 = midR > 0.0f ? 2.0f * (midR/p_ShadP) - _logf((midR/p_ShadP) * (e * p_ShadR * 2.0f) + 1.0f)/_logf(e * p_ShadR * 2.0f + 1.0f) : midR;\n" \
+	"   float shadupR = midR < p_ShadP && p_ShadR > 0.0f ? (shadupR1 + p_ShadR * (1.0f - shadupR1)) * p_ShadP : midR;\n" \
+	"   float shadupG1 = midG > 0.0f ? 2.0f * (midG/p_ShadP) - _logf((midG/p_ShadP) * (e * p_ShadG * 2.0f) + 1.0f)/_logf(e * p_ShadG * 2.0f + 1.0f) : midG;\n" \
+	"   float shadupG = midG < p_ShadP && p_ShadG > 0.0f ? (shadupG1 + p_ShadG * (1.0f - shadupG1)) * p_ShadP : midG;\n" \
+	"   float shadupB1 = midB > 0.0f ? 2.0f * (midB/p_ShadP) - _logf((midB/p_ShadP) * (e * p_ShadB * 2.0f) + 1.0f)/_logf(e * p_ShadB * 2.0f + 1.0f) : midB;\n" \
+	"   float shadupB = midB < p_ShadP && p_ShadB > 0.0f ? (shadupB1 + p_ShadB * (1.0f - shadupB1)) * p_ShadP : midB;\n" \
+	"\n" \
+	"   float shaddownR1 = shadupR/p_ShadP + p_ShadR*2 * (1.0f - shadupR/p_ShadP);\n" \
+	"   float shaddownR = shadupR < p_ShadP && p_ShadR < 0.0f ? (shaddownR1 >= 0.0f ? _logf(shaddownR1 * (e * p_ShadR * -2.0f) + 1.0f)/_logf(e * p_ShadR * -2.0f + 1.0f) : shaddownR1) * p_ShadP : shadupR;\n" \
+	"   float shaddownG1 = shadupG/p_ShadP + p_ShadG*2 * (1.0f - shadupG/p_ShadP);\n" \
+	"   float shaddownG = shadupG < p_ShadP && p_ShadG < 0.0f ? (shaddownG1 >= 0.0f ? _logf(shaddownG1 * (e * p_ShadG * -2.0f) + 1.0f)/_logf(e * p_ShadG * -2.0f + 1.0f) : shaddownG1) * p_ShadP : shadupG;\n" \
+	"   float shaddownB1 = shadupB/p_ShadP + p_ShadB*2 * (1.0f - shadupB/p_ShadP);\n" \
+	"   float shaddownB = shadupB < p_ShadP && p_ShadB < 0.0f ? (shaddownB1 >= 0.0f ? _logf(shaddownB1 * (e * p_ShadB * -2.0f) + 1.0f)/_logf(e * p_ShadB * -2.0f + 1.0f) : shaddownB1) * p_ShadP : shadupB;\n" \
+	"\n" \
+	"   float highupR1 = ((shaddownR - p_HighP) / (1.0f - p_HighP)) * (1.0f + (p_HighR * 2.0f));\n" \
+	"   float highupR = shaddownR > p_HighP && p_HighP < 1.0f && p_HighR > 0.0f ? (2.0f * highupR1 - _logf(highupR1 * e * p_HighR + 1.0f)/_logf(e * p_HighR + 1.0f)) * (1.0f - p_HighP) + p_HighP : shaddownR;\n" \
+	"   float highupG1 = ((shaddownG - p_HighP) / (1.0f - p_HighP)) * (1.0f + (p_HighG * 2.0f));\n" \
+	"   float highupG = shaddownG > p_HighP && p_HighP < 1.0f && p_HighG > 0.0f ? (2.0f * highupG1 - _logf(highupG1 * e * p_HighG + 1.0f)/_logf(e * p_HighG + 1.0f)) * (1.0f - p_HighP) + p_HighP : shaddownG;\n" \
+	"   float highupB1 = ((shaddownB - p_HighP) / (1.0f - p_HighP)) * (1.0f + (p_HighB * 2.0f));\n" \
+	"   float highupB = shaddownB > p_HighP && p_HighP < 1.0f && p_HighB > 0.0f ? (2.0f * highupB1 - _logf(highupB1 * e * p_HighB + 1.0f)/_logf(e * p_HighB + 1.0f)) * (1.0f - p_HighP) + p_HighP : shaddownB;\n" \
+	"\n" \
+	"   float highdownR1 = (highupR - p_HighP) / (1.0f - p_HighP);\n" \
+	"   float highdownR = highupR > p_HighP && p_HighP < 1.0f && p_HighR < 0.0f ? _logf(highdownR1 * (e * p_HighR * -2.0f) + 1.0f)/_logf(e * p_HighR * -2.0f + 1.0f) * (1.0f + p_HighR) * (1.0f - p_HighP) + p_HighP : highupR;\n" \
+	"   float highdownG1 = (highupG - p_HighP) / (1.0f - p_HighP);\n" \
+	"   float highdownG = highupG > p_HighP && p_HighP < 1.0f && p_HighG < 0.0f ? _logf(highdownG1 * (e * p_HighG * -2.0f) + 1.0f)/_logf(e * p_HighG * -2.0f + 1.0f) * (1.0f + p_HighG) * (1.0f - p_HighP) + p_HighP : highupG;\n" \
+	"   float highdownB1 = (highupB - p_HighP) / (1.0f - p_HighP);\n" \
+	"   float highdownB = highupB > p_HighP && p_HighP < 1.0f && p_HighB < 0.0f ? _logf(highdownB1 * (e * p_HighB * -2.0f) + 1.0f)/_logf(e * p_HighB * -2.0f + 1.0f) * (1.0f + p_HighB) * (1.0f - p_HighP) + p_HighP : highupB;\n" \
+	"\n" \
+	"   float contR = (highdownR - p_ContP) * p_ContR + p_ContP;\n" \
+	"   float contG = (highdownG - p_ContP) * p_ContG + p_ContP;\n" \
+	"   float contB = (highdownB - p_ContP) * p_ContB + p_ContP;\n" \
+	"\n" \
+	"   float luma = contR * 0.2126f + contG * 0.7152f + contB * 0.0722f;\n" \
+	"   float satR = (1.0f - (p_SatR*0.2126f + p_SatG* 0.7152f + p_SatB*0.0722f)) * luma + contR * p_SatR;\n" \
+	"   float satG = (1.0f - (p_SatR*0.2126f + p_SatG* 0.7152f + p_SatB*0.0722f)) * luma + contG * p_SatG;\n" \
+	"   float satB = (1.0f - (p_SatR*0.2126f + p_SatG* 0.7152f + p_SatB*0.0722f)) * luma + contB * p_SatB;\n" \
+	"\n" \
+	"   float r = p_Display != 1 ? satR : p_Y / height >= p_ShadP && p_Y / height <= p_ShadP + 0.005f ? (_fmod(p_X, 2.0f) != 0.0f ? 1.0f : 0.0f) : satR >= (p_Y - 5) / height && satR <= (p_Y + 5) / height ? 1.0f : 0.0f;\n" \
+	"   float g = p_Display != 1 ? satG : p_Y / height >= p_HighP && p_Y / height <= p_HighP + 0.005f ? (_fmod(p_X, 2.0f) != 0.0f ? 1.0f : 0.0f) : satG >= (p_Y - 5) / height && satG <= (p_Y + 5) / height ? 1.0f : 0.0f;\n" \
+	"   float b = p_Display != 1 ? satB : p_Y / height >= p_ContP && p_Y / height <= p_ContP + 0.005f ? (_fmod(p_X, 2.0f) != 0.0f ? 1.0f : 0.0f) : satB >= (p_Y - 5) / height && satB <= (p_Y + 5) / height ? 1.0f : 0.0f;\n" \
+	"\n" \
+	"	   \n" \
+	"   return make_float3(r, g, b);	\n" \
+	"}\n"
+
+	float expR = m_ExpR->getValueAtTime(p_Args.time);
+    float expG = m_ExpG->getValueAtTime(p_Args.time);
+    float expB = m_ExpB->getValueAtTime(p_Args.time);
+    float contR = m_ContR->getValueAtTime(p_Args.time);
+    float contG = m_ContG->getValueAtTime(p_Args.time);
+    float contB = m_ContB->getValueAtTime(p_Args.time);
+    float satR = m_SatR->getValueAtTime(p_Args.time);
+    float satG = m_SatG->getValueAtTime(p_Args.time);
+    float satB = m_SatB->getValueAtTime(p_Args.time);
+    float shadR = m_ShadR->getValueAtTime(p_Args.time);
+    float shadG = m_ShadG->getValueAtTime(p_Args.time);
+    float shadB = m_ShadB->getValueAtTime(p_Args.time);
+    float midR = m_MidR->getValueAtTime(p_Args.time);
+    float midG = m_MidG->getValueAtTime(p_Args.time);
+    float midB = m_MidB->getValueAtTime(p_Args.time);
+    float highR = m_HighR->getValueAtTime(p_Args.time);
+    float highG = m_HighG->getValueAtTime(p_Args.time);
+    float highB = m_HighB->getValueAtTime(p_Args.time);
+    float shadP = m_ShadP->getValueAtTime(p_Args.time)/1023;
+    float highP = m_HighP->getValueAtTime(p_Args.time)/1023;
+    float contP = m_ContP->getValueAtTime(p_Args.time)/1023;
+    
+    bool aDisplay = m_Display->getValueAtTime(p_Args.time);
+    int display = aDisplay ? 1 : 0; 
+	
+	string PATH;
+	m_Path->getValue(PATH);
+	
+	FILE * pFile;
+	
+	pFile = fopen ((PATH + "/FilmGrade.dctl").c_str(), "w");
+	if (pFile != NULL) {
+    	
+	fprintf (pFile, kDCTL1);
+	fprintf (pFile, "   float p_ExpR = %ff;\n" \
+	"   float p_ExpG = %ff;\n" \
+	"   float p_ExpB = %ff;\n" \
+	"   float p_ContR = %ff;\n" \
+	"   float p_ContG = %ff;\n" \
+	"   float p_ContB = %ff;\n" \
+	"   float p_SatR = %ff;\n" \
+	"   float p_SatG = %ff;\n" \
+	"   float p_SatB = %ff;\n" \
+	"   float p_ShadR = %ff;\n" \
+	"   float p_ShadG = %ff;\n" \
+	"   float p_ShadB = %ff;\n" \
+	"   float p_MidR = %ff;\n" \
+	"   float p_MidG = %ff;\n" \
+	"   float p_MidB = %ff;\n" \
+	"   float p_HighR = %ff;\n" \
+	"   float p_HighG = %ff;\n" \
+	"   float p_HighB = %ff;\n" \
+	"   float p_ShadP = %ff;\n" \
+	"   float p_HighP = %ff;\n" \
+	"   float p_ContP = %ff;\n" \
+	"   int p_Display = %d;\n", expR, expG, expB, contR, contG, contB, satR, satG, satB, shadR, 
+	shadG, shadB, midR, midG, midB, highR, highG, highB, shadP, highP, contP, display);
+	fprintf (pFile, kDCTL2);
+	fclose (pFile);
+	} else {
+     sendMessage(OFX::Message::eMessageError, "", string("Error: Cannot open, create, or save file. Check Permissions."));
+	}	
+	}
+	
+	if(p_ParamName == "button2")
+    {
+	 
+	float expR = m_ExpR->getValueAtTime(p_Args.time);
+    float expG = m_ExpG->getValueAtTime(p_Args.time);
+    float expB = m_ExpB->getValueAtTime(p_Args.time);
+    float contR = m_ContR->getValueAtTime(p_Args.time);
+    float contG = m_ContG->getValueAtTime(p_Args.time);
+    float contB = m_ContB->getValueAtTime(p_Args.time);
+    float satR = m_SatR->getValueAtTime(p_Args.time);
+    float satG = m_SatG->getValueAtTime(p_Args.time);
+    float satB = m_SatB->getValueAtTime(p_Args.time);
+    float shadR = m_ShadR->getValueAtTime(p_Args.time);
+    float shadG = m_ShadG->getValueAtTime(p_Args.time);
+    float shadB = m_ShadB->getValueAtTime(p_Args.time);
+    float midR = m_MidR->getValueAtTime(p_Args.time);
+    float midG = m_MidG->getValueAtTime(p_Args.time);
+    float midB = m_MidB->getValueAtTime(p_Args.time);
+    float highR = m_HighR->getValueAtTime(p_Args.time);
+    float highG = m_HighG->getValueAtTime(p_Args.time);
+    float highB = m_HighB->getValueAtTime(p_Args.time);
+    float shadP = m_ShadP->getValueAtTime(p_Args.time)/1023;
+    float highP = m_HighP->getValueAtTime(p_Args.time)/1023;
+    float contP = m_ContP->getValueAtTime(p_Args.time)/1023;
+    
+    bool aDisplay = m_Display->getValueAtTime(p_Args.time);
+    int display = aDisplay ? 1 : 0;
+    
+    string PATH;
+	m_Path->getValue(PATH);
+	
+	FILE * pFile;
+	
+	pFile = fopen ((PATH + "/FilmGrade.nk").c_str(), "w");
+	if (pFile != NULL) {
+    	
+	fprintf (pFile, "Group {\n" \
+	" inputs 0\n" \
+	" name FilmGrade\n" \
+	" xpos -165\n" \
+	" ypos 247\n" \
+	"}\n" \
+	" Input {\n" \
+	"  inputs 0\n" \
+	"  name Input1\n" \
+	"  xpos 256\n" \
+	"  ypos 310\n" \
+	" }\n" \
+	"set N6005e3e0 [stack 0]\n" \
+	" Expression {\n" \
+	"  expr0 \"x / width\"\n" \
+	"  expr1 \"x / width\"\n" \
+	"  expr2 \"x / width\"\n" \
+	"  name Display1\n" \
+	"  xpos 326\n" \
+	"  ypos 346\n" \
+	" }\n" \
+	"push $N6005e3e0\n" \
+	" Switch {\n" \
+	"  inputs 2\n" \
+	"  which %d\n" \
+	"  name Display_switch\n" \
+	"  xpos 256\n" \
+	"  ypos 388\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ExpR\n" \
+	"  temp_expr0 \"%f / 100\"\n" \
+	"  temp_name1 ExpG\n" \
+	"  temp_expr1 \"%f / 100\"\n" \
+	"  temp_name2 ExpB\n" \
+	"  temp_expr2 \"%f / 100\"\n" \
+	"  expr0 \"r + ExpR\"\n" \
+	"  expr1 \"g + ExpG\"\n" \
+	"  expr2 \"b + ExpB\"\n" \
+	"  name Exposure\n" \
+	"  xpos 258\n" \
+	"  ypos 423\n" \
+	" }\n" \
+	"set N600e5860 [stack 0]\n" \
+	"push $N600e5860\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 HighP\n" \
+	"  temp_expr1 \"%f\"\n" \
+	"  temp_name2 expr1\n" \
+	"  temp_expr2 \"(ShadP / 2) - (1 - HighP) / 4\"\n" \
+	"  temp_name3 expr2\n" \
+	"  temp_expr3 \"(1 - (1 - HighP) / 2) + (ShadP / 4)\"\n" \
+	"  expr0 \"(r - expr1) / (expr2 - expr1)\"\n" \
+	"  expr1 \"(g - expr1) / (expr2 - expr1)\"\n" \
+	"  expr2 \"(b - expr1) / (expr2 - expr1)\"\n" \
+	"  name Pivots\n" \
+	"  xpos 140\n" \
+	"  ypos 455\n" \
+	" }\n" \
+	"set N600a6650 [stack 0]\n" \
+	" Expression {\n" \
+	"  temp_name0 ContP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 expr4\n" \
+	"  temp_expr1 \"ContP < 0.5 ? 0.5 - (0.5 - ContP) / 2 : 0.5 + (ContP - 0.5) / 2\"\n" \
+	"  expr0 \"r > expr4 ? (r - expr4) / (2 - 2 * expr4) + 0.5 : r / (2 * expr4)\"\n" \
+	"  expr1 \"g > expr4 ? (g - expr4) / (2 - 2 * expr4) + 0.5 : g / (2 * expr4)\"\n" \
+	"  expr2 \"b > expr4 ? (b - expr4) / (2 - 2 * expr4) + 0.5 : b / (2 * expr4)\"\n" \
+	"  name Mids_1\n" \
+	"  xpos 45\n" \
+	"  ypos 488\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 MidR\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 MidG\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 MidB\n" \
+	"  temp_expr2 %f\n" \
+	"  temp_name3 pie\n" \
+	"  temp_expr3 3.141592653589793\n" \
+	"  expr0 \"((sin(2 * pie * (r - 1/4)) + 1) / 20) * MidR * 4\"\n" \
+	"  expr1 \"((sin(2 * pie * (g - 1/4)) + 1) / 20) * MidG * 4\"\n" \
+	"  expr2 \"((sin(2 * pie * (b - 1/4)) + 1) / 20) * MidB * 4\"\n" \
+	"  name Mids_2\n" \
+	"  xpos 45\n" \
+	"  ypos 512\n" \
+	" }\n" \
+	"push $N600a6650\n" \
+	" Merge2 {\n" \
+	"  inputs 2\n" \
+	"  operation plus\n" \
+	"  Achannels rgb\n" \
+	"  Bchannels rgb\n" \
+	"  output rgb\n" \
+	"  name Mids_3\n" \
+	"  xpos 86\n" \
+	"  ypos 552\n" \
+	" }\n" \
+	"set N60030410 [stack 0]\n" \
+	" ShuffleCopy {\n" \
+	"  inputs 2\n" \
+	"  in rgb\n" \
+	"  in2 rgb\n" \
+	"  green red\n" \
+	"  blue red\n" \
+	"  out rgb\n" \
+	"  name Mids_R1\n" \
+	"  xpos 158\n" \
+	"  ypos 614\n" \
+	" }\n", display, expR, expG, expB, shadP, highP, contP, midR, midG, midB);
+	fprintf (pFile, " Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 HighP\n" \
+	"  temp_expr1 \"%f\"\n" \
+	"  temp_name2 expr1\n" \
+	"  temp_expr2 \"(ShadP / 2) - (1 - HighP) / 4\"\n" \
+	"  temp_name3 expr2\n" \
+	"  temp_expr3 \"(1 - (1 - HighP) / 2) + (ShadP / 4)\"\n" \
+	"  expr0 \"g >= expr1 && r <= expr2 ? r * (expr2 - expr1) + expr1 : g\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name Mids_R2\n" \
+	"  xpos 158\n" \
+	"  ypos 638\n" \
+	" }\n" \
+	"push $N600e5860\n" \
+	"push $N60030410\n" \
+	" ShuffleCopy {\n" \
+	"  inputs 2\n" \
+	"  in rgb\n" \
+	"  in2 rgb\n" \
+	"  red green2\n" \
+	"  green green\n" \
+	"  blue green\n" \
+	"  out rgb\n" \
+	"  name Mids_G1\n" \
+	"  xpos 258\n" \
+	"  ypos 615\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 HighP\n" \
+	"  temp_expr1 \"%f\"\n" \
+	"  temp_name2 expr1\n" \
+	"  temp_expr2 \"(ShadP / 2) - (1 - HighP) / 4\"\n" \
+	"  temp_name3 expr2\n" \
+	"  temp_expr3 \"(1 - (1 - HighP) / 2) + (ShadP / 4)\"\n" \
+	"  expr0 0\n" \
+	"  expr1 \"g >= expr1 && r <= expr2 ? r * (expr2 - expr1) + expr1 : g\"\n" \
+	"  expr2 0\n" \
+	"  name Mids_G2\n" \
+	"  xpos 258\n" \
+	"  ypos 639\n" \
+	" }\n" \
+	" ShuffleCopy {\n" \
+	"  inputs 2\n" \
+	"  in rgb\n" \
+	"  in2 rgb\n" \
+	"  red red\n" \
+	"  blue black\n" \
+	"  out rgb\n" \
+	"  name Mids_4\n" \
+	"  xpos 204\n" \
+	"  ypos 673\n" \
+	" }\n" \
+	"push $N600e5860\n" \
+	"push $N60030410\n" \
+	" ShuffleCopy {\n" \
+	"  inputs 2\n" \
+	"  in rgb\n" \
+	"  in2 rgb\n" \
+	"  red blue2\n" \
+	"  green blue\n" \
+	"  blue blue\n" \
+	"  out rgb\n" \
+	"  name Mids_B1\n" \
+	"  xpos 358\n" \
+	"  ypos 616\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 HighP\n" \
+	"  temp_expr1 \"%f\"\n" \
+	"  temp_name2 expr1\n" \
+	"  temp_expr2 \"(ShadP / 2) - (1 - HighP) / 4\"\n" \
+	"  temp_name3 expr2\n" \
+	"  temp_expr3 \"(1 - (1 - HighP) / 2) + (ShadP / 4)\"\n" \
+	"  expr0 0\n" \
+	"  expr1 0\n" \
+	"  expr2 \"g >= expr1 && r <= expr2 ? r * (expr2 - expr1) + expr1 : g\"\n" \
+	"  name Mids_B2\n" \
+	"  xpos 358\n" \
+	"  ypos 640\n" \
+	" }\n" \
+	" ShuffleCopy {\n" \
+	"  inputs 2\n" \
+	"  in rgb\n" \
+	"  in2 rgb\n" \
+	"  red red\n" \
+	"  green green\n" \
+	"  out rgb\n" \
+	"  name Mids_5\n" \
+	"  xpos 250\n" \
+	"  ypos 710\n" \
+	" }\n" \
+	"set N600373e0 [stack 0]\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 ShadR\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 r\n" \
+	"  expr1 \"r > 0 ? 2 * (r / ShadP) - log((r / ShadP) * (e * ShadR * 2) + 1) / log(e * ShadR * 2 + 1) : r\"\n" \
+	"  expr2 0\n" \
+	"  name ShadupR1\n" \
+	"  xpos 152\n" \
+	"  ypos 746\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 ShadR\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 \"r < ShadP && ShadR > 0 ? (g + ShadR * (1 - g)) * ShadP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name ShadupR2\n" \
+	"  xpos 152\n" \
+	"  ypos 770\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 \"%f\"\n" \
+	"  temp_name1 ShadR\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"r / ShadP + ShadR * 2 * (1 - r / ShadP)\"\n" \
+	"  expr2 0\n" \
+	"  name ShaddownR1\n" \
+	"  xpos 152\n" \
+	"  ypos 794\n" \
+	" }\n", shadP, highP, shadP, highP, shadP, highP, shadP, shadR, shadP, shadR, shadP, shadR);
+	fprintf (pFile, " Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadR\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r < ShadP && ShadR < 0 ? (g >= 0 ? log(g * (e * ShadR * -2) + 1) / log(e * ShadR * -2 + 1) : g) * ShadP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name ShaddownR2\n" \
+	"  xpos 152\n" \
+	"  ypos 818\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighR\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"((r - HighP) / (1 - HighP)) * (1 + (HighR * 2));\"\n" \
+	"  expr2 0\n" \
+	"  name HighupR1\n" \
+	"  xpos 152\n" \
+	"  ypos 842\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighR\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r > HighP && HighP < 1 && HighR > 0 ? (2 * g - log(g * e * HighR + 1) / log(e * HighR + 1)) * (1 - HighP) + HighP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name HighupR2\n" \
+	"  xpos 152\n" \
+	"  ypos 866\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"(r - HighP) / (1 - HighP)\"\n" \
+	"  expr2 0\n" \
+	"  name HighdownR1\n" \
+	"  xpos 152\n" \
+	"  ypos 890\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighR\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r > HighP && HighP < 1 && HighR < 0 ? log(g * (e * HighR * -2) + 1) / log(e * HighR * -2 + 1) * (1 + HighR) * (1 - HighP) + HighP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name HighdownR2\n" \
+	"  xpos 152\n" \
+	"  ypos 914\n" \
+	" }\n" \
+	"push $N600373e0\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadG\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 g\n" \
+	"  expr1 \"g > 0 ? 2 * (g / ShadP) - log((g / ShadP) * (e * ShadG * 2) + 1) / log(e * ShadG * 2 + 1) : g\"\n" \
+	"  expr2 0\n" \
+	"  name ShadupG1\n" \
+	"  xpos 250\n" \
+	"  ypos 747\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadG\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 \"r < ShadP && ShadG > 0 ? (g + ShadG * (1 - g)) * ShadP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name ShadupG2\n" \
+	"  xpos 250\n" \
+	"  ypos 771\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadG\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"r / ShadP + ShadG * 2 * (1 - r / ShadP)\"\n" \
+	"  expr2 0\n" \
+	"  name ShaddownG1\n" \
+	"  xpos 250\n" \
+	"  ypos 795\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadG\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r < ShadP && ShadG < 0 ? (g >= 0 ? log(g * (e * ShadG * -2) + 1) / log(e * ShadG * -2 + 1) : g) * ShadP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name ShaddownG2\n" \
+	"  xpos 250\n" \
+	"  ypos 819\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighG\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"((r - HighP) / (1 - HighP)) * (1 + (HighG * 2));\"\n" \
+	"  expr2 0\n" \
+	"  name HighupG1\n" \
+	"  xpos 250\n" \
+	"  ypos 843\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighG\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r > HighP && HighP < 1 && HighG > 0 ? (2 * g - log(g * e * HighG + 1) / log(e * HighG + 1)) * (1 - HighP) + HighP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name HighupG2\n" \
+	"  xpos 250\n" \
+	"  ypos 867\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"(r - HighP) / (1 - HighP)\"\n" \
+	"  expr2 0\n" \
+	"  name HighdownG1\n" \
+	"  xpos 250\n" \
+	"  ypos 891\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighG\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r > HighP && HighP < 1 && HighG < 0 ? log(g * (e * HighG * -2) + 1) / log(e * HighG * -2 + 1) * (1 + HighG) * (1 - HighP) + HighP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name HighdownG2\n" \
+	"  xpos 250\n" \
+	"  ypos 915\n" \
+	" }\n" \
+	" ShuffleCopy {\n" \
+	"  inputs 2\n" \
+	"  in rgb\n" \
+	"  in2 rgb\n" \
+	"  red red\n" \
+	"  green red2\n" \
+	"  blue black\n" \
+	"  out rgb\n" \
+	"  name RG\n" \
+	"  xpos 217\n" \
+	"  ypos 957\n" \
+	" }\n" \
+	"push $N600373e0\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadB\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 b\n" \
+	"  expr1 \"b > 0 ? 2 * (b / ShadP) - log((b / ShadP) * (e * ShadB * 2) + 1) / log(e * ShadB * 2 + 1) : b\"\n" \
+	"  expr2 0\n" \
+	"  name ShadupB1\n" \
+	"  xpos 349\n" \
+	"  ypos 747\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadB\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 \"r < ShadP && ShadB > 0 ? (g + ShadB * (1 - g)) * ShadP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name ShadupB2\n" \
+	"  xpos 349\n" \
+	"  ypos 771\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadB\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"r / ShadP + ShadB * 2 * (1 - r / ShadP)\"\n" \
+	"  expr2 0\n" \
+	"  name ShaddownB1\n" \
+	"  xpos 349\n" \
+	"  ypos 795\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ShadB\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r < ShadP && ShadB < 0 ? (g >= 0 ? log(g * (e * ShadB * -2) + 1) / log(e * ShadB * -2 + 1) : g) * ShadP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name ShaddownB2\n" \
+	"  xpos 349\n" \
+	"  ypos 819\n" \
+	" }\n", shadP, shadR, highP, highR, highP, highR,
+ 	highP, highP, highR, shadP, shadG, shadP, shadG, shadP, shadG,
+ 	shadP, shadG, highP, highG, highP, highG, highP, highP, highG,
+ 	shadP, shadB, shadP, shadB, shadP, shadB, shadP, shadB);
+	fprintf (pFile, " Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighB\n" \
+	"  temp_expr1 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"((r - HighP) / (1 - HighP)) * (1 + (HighB * 2));\"\n" \
+	"  expr2 0\n" \
+	"  name HighupB1\n" \
+	"  xpos 349\n" \
+	"  ypos 843\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighB\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r > HighP && HighP < 1 && HighB > 0 ? (2 * g - log(g * e * HighB + 1) / log(e * HighB + 1)) * (1 - HighP) + HighP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name HighupB2\n" \
+	"  xpos 349\n" \
+	"  ypos 867\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  expr0 r\n" \
+	"  expr1 \"(r - HighP) / (1 - HighP)\"\n" \
+	"  expr2 0\n" \
+	"  name HighdownB1\n" \
+	"  xpos 349\n" \
+	"  ypos 891\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 HighP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighB\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 e\n" \
+	"  temp_expr2 2.718281828459045\n" \
+	"  expr0 \"r > HighP && HighP < 1 && HighB < 0 ? log(g * (e * HighB * -2) + 1) / log(e * HighB * -2 + 1) * (1 + HighB) * (1 - HighP) + HighP : r\"\n" \
+	"  expr1 0\n" \
+	"  expr2 0\n" \
+	"  name HighdownB2\n" \
+	"  xpos 349\n" \
+	"  ypos 915\n" \
+	" }\n" \
+	" ShuffleCopy {\n" \
+	"  inputs 2\n" \
+	"  in rgb\n" \
+	"  in2 rgb\n" \
+	"  red red\n" \
+	"  green green\n" \
+	"  blue red2\n" \
+	"  out rgb\n" \
+	"  name RGB\n" \
+	"  xpos 262\n" \
+	"  ypos 998\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 ContP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 ContR\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 ContG\n" \
+	"  temp_expr2 %f\n" \
+	"  temp_name3 ContB\n" \
+	"  temp_expr3 %f\n" \
+	"  expr0 \"(r - ContP) * ContR + ContP\"\n" \
+	"  expr1 \"(g - ContP) * ContG + ContP\"\n" \
+	"  expr2 \"(b - ContP) * ContB + ContP\"\n" \
+	"  name Contrast\n" \
+	"  selected true\n" \
+	"  xpos 262\n" \
+	"  ypos 1022\n" \
+	" }\n" \
+	" Expression {\n" \
+	"  temp_name0 SatR\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 SatG\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 SatB\n" \
+	"  temp_expr2 %f\n" \
+	"  temp_name3 luma\n" \
+	"  temp_expr3 \"r * 0.2126 + g * 0.7152 + b * 0.0722\"\n" \
+	"  expr0 \"(1 - (SatR * 0.2126 + SatG * 0.7152 + SatB * 0.0722)) * luma + r * SatR\"\n" \
+	"  expr1 \"(1 - (SatR * 0.2126 + SatG * 0.7152 + SatB * 0.0722)) * luma + g * SatG\"\n" \
+	"  expr2 \"(1 - (SatR * 0.2126 + SatG * 0.7152 + SatB * 0.0722)) * luma + b * SatB\"\n" \
+	"  name Saturation\n" \
+	"  xpos 262\n" \
+	"  ypos 1046\n" \
+	" }\n" \
+	"set N50a1c140 [stack 0]\n" \
+	" Expression {\n" \
+	"  temp_name0 ShadP\n" \
+	"  temp_expr0 %f\n" \
+	"  temp_name1 HighP\n" \
+	"  temp_expr1 %f\n" \
+	"  temp_name2 ContP\n" \
+	"  temp_expr2 %f\n" \
+	"  expr0 \"y / height >= ShadP && y / height <= ShadP + 0.005 ? (fmod(x, 5) != 0 ? 1 : 0) : r >= (y - 5) / height && r <= (y + 5) / height ? 1 : 0\"\n" \
+	"  expr1 \"y / height >= HighP && y / height <= HighP + 0.005 ? (fmod(x, 5) != 0 ? 1 : 0) : g >= (y - 5) / height && g <= (y + 5) / height ? 1 : 0\"\n" \
+	"  expr2 \"y / height >= ContP && y / height <= ContP + 0.005 ? (fmod(x, 5) != 0 ? 1 : 0) : b >= (y - 5) / height && b <= (y + 5) / height ? 1 : 0\"\n" \
+	"  name Display2\n" \
+	"  xpos 333\n" \
+	"  ypos 1079\n" \
+	" }\n" \
+	"push $N50a1c140\n" \
+	" Switch {\n" \
+	"  inputs 2\n" \
+	"  which %d\n" \
+	"  name Display_switch2\n" \
+	"  xpos 262\n" \
+	"  ypos 1117\n" \
+	" }\n" \
+	" Output {\n" \
+	"  name Output1\n" \
+	"  xpos 262\n" \
+	"  ypos 1217\n" \
+	" }\n" \
+	"end_group\n", highP, highB, highP, highB, highP, highP, highB, contP, contR,
+	contG, contB, satR, satG, satB, shadP, highP, contP, display);
+	fclose (pFile);
+	} else {
+	 sendMessage(OFX::Message::eMessageError, "", string("Error: Cannot open, create, or save file. Check Permissions."));
+	}
+	}
+	  
 }
          
 void FilmGradePlugin::setupAndProcess(ImageScaler& p_ImageScaler, const OFX::RenderArguments& p_Args)
@@ -1725,6 +2537,38 @@ void FilmGradePluginFactory::describeInContext(OFX::ImageEffectDescriptor& p_Des
     param->setDisplayRange(0.0, 1023.0);
     page->addChild(*param);
     
+    {    
+    GroupParamDescriptor* script = p_Desc.defineGroupParam("Script Export");
+    script->setOpen(false);
+    script->setHint("export DCTL and Nuke script");
+      if (page) {
+            page->addChild(*script);
+            }
+    {
+    PushButtonParamDescriptor* param = p_Desc.definePushButtonParam("button1");
+    param->setLabel("Export DCTL");
+    param->setHint("create DCTL version");
+    param->setParent(*script);
+    page->addChild(*param);
+    }
+    {
+    PushButtonParamDescriptor* param = p_Desc.definePushButtonParam("button2");
+    param->setLabel("Export Nuke script");
+    param->setHint("create NUKE version");
+    param->setParent(*script);
+    page->addChild(*param);
+    }
+	{
+	StringParamDescriptor* param = p_Desc.defineStringParam("path");
+	param->setLabel("File Directory");
+	param->setHint("make sure it's the absolute path");
+	param->setStringType(eStringTypeFilePath);
+	param->setDefault("");
+	param->setFilePathExists(false);
+	param->setParent(*script);
+	page->addChild(*param);
+	}
+	}        
     
 }
 
