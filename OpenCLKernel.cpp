@@ -354,7 +354,7 @@ float* p_Shad, float* p_Mid, float* p_High, float* p_Pivot, float* p_Display, co
 				&length);
 			// the actual size in bytes of data copied to buffer
 			FILE * pFile;
-			pFile = fopen("e:\\FilmGradeKernel_OPENCL.txt", "w");
+			pFile = fopen("/", "w");
 			if (pFile != NULL)
 			{
 				fprintf(pFile, "%s\n", buffer);
