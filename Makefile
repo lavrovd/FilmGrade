@@ -6,7 +6,7 @@ CXXFLAGS = -I../OpenFX-1.3/include -I../Support/include
 
 ifeq ($(UNAME_SYSTEM), Linux)
 	OPENCLPATH = /opt/AMDAPP
-	CXXFLAGS += -I${OPENCLPATH}/include -fPIC
+	CXXFLAGS += -I${CUDAPATH}/include -I${OPENCLPATH}/include -fPIC
 	NVCCFLAGS = --compiler-options="-fPIC"
 	LDFLAGS = -shared -L${CUDAPATH}/lib64 -lcuda -lcudart
 	BUNDLE_DIR = FilmGradePlugin.ofx.bundle/Contents/Linux-x86-64/
